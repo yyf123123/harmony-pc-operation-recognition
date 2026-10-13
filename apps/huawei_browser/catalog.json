@@ -1,0 +1,652 @@
+{
+  "schema_version": "cross-app.operation-catalog.v1",
+  "app_id": "huawei_browser",
+  "display_name": "Huawei Browser",
+  "source": "phase1_catalog_only",
+  "evaluation_sets": {
+    "full": [
+      "huawei_browser.browser.launch",
+      "huawei_browser.browser.open_fixed_page",
+      "huawei_browser.browser.new_tab",
+      "huawei_browser.browser.switch_tab",
+      "huawei_browser.browser.close_tab",
+      "huawei_browser.browser.refresh",
+      "huawei_browser.browser.go_back",
+      "huawei_browser.browser.go_forward",
+      "huawei_browser.browser.fixed_scroll",
+      "huawei_browser.browser.navigate_fixed_url",
+      "huawei_browser.browser.page_find",
+      "huawei_browser.browser.add_bookmark",
+      "huawei_browser.browser.history",
+      "huawei_browser.browser.download",
+      "huawei_browser.browser.search_engine_search",
+      "huawei_browser.browser.login",
+      "huawei_browser.browser.cloud_sync"
+    ],
+    "primary": [
+      "huawei_browser.browser.open_fixed_page",
+      "huawei_browser.browser.new_tab",
+      "huawei_browser.browser.switch_tab",
+      "huawei_browser.browser.close_tab",
+      "huawei_browser.browser.go_back",
+      "huawei_browser.browser.go_forward",
+      "huawei_browser.browser.fixed_scroll",
+      "huawei_browser.browser.navigate_fixed_url"
+    ],
+    "pilot_v3": [
+      "huawei_browser.browser.open_fixed_page",
+      "huawei_browser.browser.new_tab",
+      "huawei_browser.browser.switch_tab",
+      "huawei_browser.browser.close_tab",
+      "huawei_browser.browser.go_back",
+      "huawei_browser.browser.go_forward",
+      "huawei_browser.browser.fixed_scroll",
+      "huawei_browser.browser.navigate_fixed_url"
+    ],
+    "formal_v3": [],
+    "pilot_v4": [
+      "huawei_browser.browser.navigate_fixed_url",
+      "huawei_browser.browser.open_settings",
+      "huawei_browser.browser.open_history_page",
+      "huawei_browser.browser.open_downloads_page",
+      "huawei_browser.browser.open_tab_overview"
+    ],
+    "formal_v4": [],
+    "controls": [
+      "huawei_browser.control.settled_noop"
+    ],
+    "stable": []
+  },
+  "operations": [
+    {
+      "operation_id": "huawei_browser.browser.launch",
+      "app_id": "huawei_browser",
+      "module": "browser",
+      "operation_family": "lifecycle",
+      "display_name": "Launch browser",
+      "precondition": "BROWSER_NOT_RUNNING",
+      "action_spec": {
+        "action": "launch"
+      },
+      "postcondition": "BROWSER_HOME_READY",
+      "content_id": null,
+      "state_variables": [
+        "browser_running",
+        "tab_count",
+        "active_tab"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "strong",
+      "requires_network": false,
+      "requires_fixed_content": false,
+      "automation_status": "INTERFACE_ONLY",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "huawei_browser.browser.open_fixed_page",
+      "app_id": "huawei_browser",
+      "module": "browser",
+      "operation_family": "navigation",
+      "display_name": "Open fixed fixture page",
+      "precondition": "BROWSER_RUNNING_WITH_EMPTY_TAB",
+      "action_spec": {
+        "action": "open_url",
+        "fixture": "browser_fixture_01"
+      },
+      "postcondition": "FIXED_PAGE_LOADED",
+      "content_id": "browser_fixture_01",
+      "state_variables": [
+        "active_tab",
+        "url",
+        "page_loaded"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "strong",
+      "requires_network": false,
+      "requires_fixed_content": true,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "VALIDATED_ON_CURRENT_TARGET"
+    },
+    {
+      "operation_id": "huawei_browser.browser.new_tab",
+      "app_id": "huawei_browser",
+      "module": "browser",
+      "operation_family": "tab_management",
+      "display_name": "New tab",
+      "precondition": "BROWSER_RUNNING_WITH_ONE_OR_MORE_TABS",
+      "action_spec": {
+        "action": "new_tab"
+      },
+      "postcondition": "NEW_EMPTY_TAB_ACTIVE",
+      "content_id": null,
+      "state_variables": [
+        "tab_count",
+        "active_tab"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "strong",
+      "requires_network": false,
+      "requires_fixed_content": false,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "VALIDATED_ON_CURRENT_TARGET"
+    },
+    {
+      "operation_id": "huawei_browser.browser.switch_tab",
+      "app_id": "huawei_browser",
+      "module": "browser",
+      "operation_family": "tab_management",
+      "display_name": "Switch from fixed page 2 to fixed page 1 tab",
+      "precondition": "BROWSER_RUNNING_WITH_TWO_FIXED_TABS_PAGE_2_ACTIVE",
+      "action_spec": {
+        "action": "switch_tab",
+        "target": "fixed_page_1_tab"
+      },
+      "postcondition": "FIXED_PAGE_1_TAB_ACTIVE",
+      "content_id": "browser_fixture_01",
+      "state_variables": [
+        "tab_count",
+        "tab_ids",
+        "active_tab",
+        "fixture_tab_ids",
+        "page_number",
+        "page_loaded"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "strong",
+      "requires_network": false,
+      "requires_fixed_content": true,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "VALIDATED_ON_CURRENT_TARGET"
+    },
+    {
+      "operation_id": "huawei_browser.browser.close_tab",
+      "app_id": "huawei_browser",
+      "module": "browser",
+      "operation_family": "tab_management",
+      "display_name": "Close fixed page 2 tab",
+      "precondition": "BROWSER_RUNNING_WITH_TWO_FIXED_TABS_PAGE_2_ACTIVE",
+      "action_spec": {
+        "action": "close_tab",
+        "target": "fixed_page_2_tab"
+      },
+      "postcondition": "FIXED_PAGE_1_TAB_REMAINS",
+      "content_id": "browser_fixture_01",
+      "state_variables": [
+        "tab_count",
+        "tab_ids",
+        "active_tab",
+        "fixture_tab_ids",
+        "page_number",
+        "page_loaded"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "strong",
+      "requires_network": false,
+      "requires_fixed_content": true,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "VALIDATED_ON_CURRENT_TARGET"
+    },
+    {
+      "operation_id": "huawei_browser.browser.refresh",
+      "app_id": "huawei_browser",
+      "module": "navigation",
+      "operation_family": "page_navigation",
+      "display_name": "Refresh fixed page",
+      "precondition": "FIXED_PAGE_LOADED",
+      "action_spec": {
+        "action": "refresh"
+      },
+      "postcondition": "FIXED_PAGE_RELOADED",
+      "content_id": "browser_fixture_01",
+      "state_variables": [
+        "url",
+        "page_loaded",
+        "load_state"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "strong",
+      "requires_network": false,
+      "requires_fixed_content": true,
+      "automation_status": "INTERFACE_ONLY",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "huawei_browser.browser.go_back",
+      "app_id": "huawei_browser",
+      "module": "browser",
+      "operation_family": "history_navigation",
+      "display_name": "Go back from fixed page 2 to fixed page 1",
+      "precondition": "FIXED_PAGE_2_WITH_PAGE_1_HISTORY",
+      "action_spec": {
+        "action": "go_back"
+      },
+      "postcondition": "FIXED_PAGE_1_ACTIVE_WITH_FORWARD_ENTRY",
+      "content_id": "browser_fixture_01",
+      "state_variables": [
+        "history_depth",
+        "forward_depth",
+        "history_chain",
+        "url",
+        "page_number",
+        "page_loaded"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "strong",
+      "requires_network": false,
+      "requires_fixed_content": true,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "VALIDATED_ON_CURRENT_TARGET"
+    },
+    {
+      "operation_id": "huawei_browser.browser.go_forward",
+      "app_id": "huawei_browser",
+      "module": "browser",
+      "operation_family": "history_navigation",
+      "display_name": "Go forward from fixed page 1 to fixed page 2",
+      "precondition": "FIXED_PAGE_1_WITH_PAGE_2_FORWARD",
+      "action_spec": {
+        "action": "go_forward"
+      },
+      "postcondition": "FIXED_PAGE_2_ACTIVE",
+      "content_id": "browser_fixture_02",
+      "state_variables": [
+        "history_depth",
+        "forward_depth",
+        "history_chain",
+        "url",
+        "page_number",
+        "page_loaded"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "strong",
+      "requires_network": false,
+      "requires_fixed_content": true,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "VALIDATED_ON_CURRENT_TARGET"
+    },
+    {
+      "operation_id": "huawei_browser.browser.fixed_scroll",
+      "app_id": "huawei_browser",
+      "module": "browser",
+      "operation_family": "viewport",
+      "display_name": "Fixed-distance scroll",
+      "precondition": "FIXED_PAGE_LOADED_WITH_SCROLLABLE_CONTENT",
+      "action_spec": {
+        "action": "scroll",
+        "distance_px": 480
+      },
+      "postcondition": "FIXED_SCROLL_OFFSET_REACHED",
+      "content_id": "browser_fixture_01",
+      "state_variables": [
+        "url",
+        "scroll_offset",
+        "page_loaded"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "medium",
+      "requires_network": false,
+      "requires_fixed_content": true,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "VALIDATED_ON_CURRENT_TARGET"
+    },
+    {
+      "operation_id": "huawei_browser.browser.navigate_fixed_url",
+      "app_id": "huawei_browser",
+      "module": "browser",
+      "operation_family": "navigation",
+      "display_name": "Navigate to Baidu network page",
+      "precondition": "BROWSER_RUNNING_WITH_ACTIVE_TAB_AND_ADDRESS_FOCUS",
+      "action_spec": {
+        "action": "navigate",
+        "url": "https://www.baidu.com/",
+        "network_host": "www.baidu.com"
+      },
+      "postcondition": "NETWORK_TARGET_PAGE_LOADED",
+      "content_id": null,
+      "state_variables": [
+        "url",
+        "url_host",
+        "page_loaded",
+        "network_state",
+        "redirect_chain",
+        "cache_state"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "strong",
+      "requires_network": true,
+      "requires_fixed_content": false,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "VALIDATED_ON_CURRENT_TARGET"
+    },
+    {
+      "operation_id": "huawei_browser.browser.open_settings",
+      "app_id": "huawei_browser",
+      "module": "browser",
+      "operation_family": "page_tools",
+      "display_name": "Open Browser settings page",
+      "precondition": "FIXED_PAGE_1_ACTIVE",
+      "action_spec": {
+        "action": "open_internal_page",
+        "url": "hwbrowser://settings",
+        "page": "settings"
+      },
+      "postcondition": "SETTINGS_PAGE_VISIBLE",
+      "content_id": null,
+      "state_variables": [
+        "active_tab",
+        "tab_count",
+        "url",
+        "internal_page",
+        "settings_marker"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "strong",
+      "requires_network": false,
+      "requires_fixed_content": false,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "VALIDATED_ON_CURRENT_TARGET"
+    },
+    {
+      "operation_id": "huawei_browser.browser.open_history_page",
+      "app_id": "huawei_browser",
+      "module": "browser",
+      "operation_family": "page_tools",
+      "display_name": "Open Browser history page",
+      "precondition": "FIXED_PAGE_2_WITH_PAGE_1_HISTORY",
+      "action_spec": {
+        "action": "open_internal_page",
+        "url": "hwbrowser://history",
+        "page": "history"
+      },
+      "postcondition": "HISTORY_PAGE_VISIBLE",
+      "content_id": null,
+      "state_variables": [
+        "active_tab",
+        "tab_count",
+        "url",
+        "internal_page",
+        "history_chain",
+        "history_marker"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "strong",
+      "requires_network": false,
+      "requires_fixed_content": false,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "VALIDATED_ON_CURRENT_TARGET"
+    },
+    {
+      "operation_id": "huawei_browser.browser.open_downloads_page",
+      "app_id": "huawei_browser",
+      "module": "browser",
+      "operation_family": "page_tools",
+      "display_name": "Open Browser downloads page",
+      "precondition": "FIXED_PAGE_1_ACTIVE",
+      "action_spec": {
+        "action": "open_internal_page",
+        "url": "hwbrowser://downloads",
+        "page": "downloads"
+      },
+      "postcondition": "DOWNLOADS_PAGE_VISIBLE",
+      "content_id": null,
+      "state_variables": [
+        "active_tab",
+        "tab_count",
+        "url",
+        "internal_page",
+        "downloads_marker"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "strong",
+      "requires_network": false,
+      "requires_fixed_content": false,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "VALIDATED_ON_CURRENT_TARGET"
+    },
+    {
+      "operation_id": "huawei_browser.browser.open_tab_overview",
+      "app_id": "huawei_browser",
+      "module": "browser",
+      "operation_family": "tab_management",
+      "display_name": "Open tab overview",
+      "precondition": "BROWSER_RUNNING_WITH_TWO_FIXED_TABS_PAGE_2_ACTIVE",
+      "action_spec": {
+        "action": "open_tab_overview",
+        "control": "pc_search_icon"
+      },
+      "postcondition": "TAB_OVERVIEW_VISIBLE",
+      "content_id": "browser_fixture_01",
+      "state_variables": [
+        "tab_count",
+        "tab_ids",
+        "active_tab",
+        "url",
+        "tab_overview_marker"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "strong",
+      "requires_network": false,
+      "requires_fixed_content": true,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "VALIDATED_ON_CURRENT_TARGET"
+    },
+    {
+      "operation_id": "huawei_browser.browser.page_find",
+      "app_id": "huawei_browser",
+      "module": "browser",
+      "operation_family": "page_tools",
+      "display_name": "Find in page",
+      "precondition": "FIXED_PAGE_LOADED",
+      "action_spec": {
+        "action": "find",
+        "query": "fixture-token"
+      },
+      "postcondition": "FIND_PANEL_CLOSED",
+      "content_id": "browser_fixture_01",
+      "state_variables": [
+        "url",
+        "find_query",
+        "page_loaded"
+      ],
+      "primary_candidate": false,
+      "primary_eval": false,
+      "expected_signal": "weak_or_unknown",
+      "requires_network": false,
+      "requires_fixed_content": true,
+      "automation_status": "DEFERRED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION",
+      "exclude_reason": "weak_signal"
+    },
+    {
+      "operation_id": "huawei_browser.browser.add_bookmark",
+      "app_id": "huawei_browser",
+      "module": "browser",
+      "operation_family": "page_tools",
+      "display_name": "Add bookmark",
+      "precondition": "FIXED_PAGE_LOADED",
+      "action_spec": {
+        "action": "bookmark"
+      },
+      "postcondition": "BOOKMARK_CREATED",
+      "content_id": "browser_fixture_01",
+      "state_variables": [
+        "url",
+        "bookmark_state"
+      ],
+      "primary_candidate": false,
+      "primary_eval": false,
+      "expected_signal": "unknown",
+      "requires_network": false,
+      "requires_fixed_content": true,
+      "automation_status": "DEFERRED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "huawei_browser.browser.history",
+      "app_id": "huawei_browser",
+      "module": "browser",
+      "operation_family": "page_tools",
+      "display_name": "Open history",
+      "precondition": "BROWSER_RUNNING",
+      "action_spec": {
+        "action": "open_history"
+      },
+      "postcondition": "HISTORY_PANEL_VISIBLE",
+      "content_id": null,
+      "state_variables": [
+        "history_depth",
+        "panel_state"
+      ],
+      "primary_candidate": false,
+      "primary_eval": false,
+      "expected_signal": "unknown",
+      "requires_network": false,
+      "requires_fixed_content": false,
+      "automation_status": "DEFERRED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "huawei_browser.browser.download",
+      "app_id": "huawei_browser",
+      "module": "browser",
+      "operation_family": "page_tools",
+      "display_name": "Download fixed asset",
+      "precondition": "FIXED_PAGE_LOADED_WITH_ASSET",
+      "action_spec": {
+        "action": "download",
+        "fixture": "browser_asset_01"
+      },
+      "postcondition": "DOWNLOAD_COMPLETED",
+      "content_id": "browser_asset_01",
+      "state_variables": [
+        "download_state",
+        "network_state"
+      ],
+      "primary_candidate": false,
+      "primary_eval": false,
+      "expected_signal": "unknown",
+      "requires_network": false,
+      "requires_fixed_content": true,
+      "automation_status": "DEFERRED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "huawei_browser.browser.search_engine_search",
+      "app_id": "huawei_browser",
+      "module": "browser",
+      "operation_family": "search",
+      "display_name": "Search engine query",
+      "precondition": "BROWSER_RUNNING_WITH_NETWORK",
+      "action_spec": {
+        "action": "search",
+        "query": "fixture-token"
+      },
+      "postcondition": "SEARCH_RESULTS_VISIBLE",
+      "content_id": null,
+      "state_variables": [
+        "url",
+        "network_state",
+        "query"
+      ],
+      "primary_candidate": false,
+      "primary_eval": false,
+      "expected_signal": "unknown",
+      "requires_network": true,
+      "requires_fixed_content": false,
+      "automation_status": "DEFERRED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "huawei_browser.browser.login",
+      "app_id": "huawei_browser",
+      "module": "browser",
+      "operation_family": "account",
+      "display_name": "Login",
+      "precondition": "LOGIN_TEST_ACCOUNT_AVAILABLE",
+      "action_spec": {
+        "action": "login"
+      },
+      "postcondition": "ACCOUNT_SESSION_ESTABLISHED",
+      "content_id": null,
+      "state_variables": [
+        "login_state",
+        "network_state"
+      ],
+      "primary_candidate": false,
+      "primary_eval": false,
+      "expected_signal": "unknown",
+      "requires_network": true,
+      "requires_fixed_content": false,
+      "automation_status": "DEFERRED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "huawei_browser.browser.cloud_sync",
+      "app_id": "huawei_browser",
+      "module": "browser",
+      "operation_family": "account",
+      "display_name": "Cloud sync",
+      "precondition": "LOGGED_IN_WITH_SYNC_ENABLED",
+      "action_spec": {
+        "action": "sync"
+      },
+      "postcondition": "SYNC_COMPLETED",
+      "content_id": null,
+      "state_variables": [
+        "login_state",
+        "sync_state",
+        "network_state"
+      ],
+      "primary_candidate": false,
+      "primary_eval": false,
+      "expected_signal": "unknown",
+      "requires_network": true,
+      "requires_fixed_content": false,
+      "automation_status": "DEFERRED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "huawei_browser.control.settled_noop",
+      "app_id": "huawei_browser",
+      "module": "control",
+      "operation_family": "control",
+      "display_name": "Settled no-op control on fixed page 1",
+      "precondition": "FIXED_PAGE_1_ACTIVE",
+      "action_spec": {
+        "action": "noop"
+      },
+      "postcondition": "FIXED_PAGE_1_UNCHANGED",
+      "content_id": "browser_fixture_01",
+      "state_variables": [
+        "browser_running",
+        "tab_count",
+        "active_tab",
+        "url",
+        "page_number",
+        "page_loaded"
+      ],
+      "primary_candidate": false,
+      "primary_eval": false,
+      "expected_signal": "control",
+      "requires_network": false,
+      "requires_fixed_content": true,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "VALIDATED_ON_CURRENT_TARGET",
+      "exclude_reason": "control_only"
+    }
+  ]
+}

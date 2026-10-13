@@ -1,0 +1,715 @@
+{
+  "schema_version": "cross-app.operation-catalog.v1",
+  "app_id": "bilibili",
+  "display_name": "Bilibili",
+  "source": "phase1_catalog_only",
+  "evaluation_sets": {
+    "full": [
+      "bilibili.video.launch",
+      "bilibili.video.open_fixed_video",
+      "bilibili.video.seek_fixed_position",
+      "bilibili.video.enter_fullscreen",
+      "bilibili.video.exit_fullscreen",
+      "bilibili.video.switch_fixed_video",
+      "bilibili.video.open_comments",
+      "bilibili.video.fixed_scroll",
+      "bilibili.video.to_background",
+      "bilibili.video.to_foreground",
+      "bilibili.video.play",
+      "bilibili.video.pause",
+      "bilibili.social.search",
+      "bilibili.social.like",
+      "bilibili.social.favorite",
+      "bilibili.social.follow",
+      "bilibili.social.comment_input",
+      "bilibili.social.publish_comment",
+      "bilibili.feed.dynamic_recommendation",
+      "bilibili.account.login"
+    ],
+    "primary": [
+      "bilibili.video.open_fixed_video",
+      "bilibili.video.seek_fixed_position",
+      "bilibili.video.enter_fullscreen",
+      "bilibili.video.exit_fullscreen",
+      "bilibili.video.open_comments",
+      "bilibili.video.fixed_scroll",
+      "bilibili.video.play",
+      "bilibili.video.pause"
+    ],
+    "pilot_v3": [
+      "bilibili.video.open_fixed_video",
+      "bilibili.video.seek_fixed_position",
+      "bilibili.video.enter_fullscreen",
+      "bilibili.video.exit_fullscreen",
+      "bilibili.video.open_comments",
+      "bilibili.video.fixed_scroll",
+      "bilibili.video.play",
+      "bilibili.video.pause"
+    ],
+    "pilot_v4": [
+      "bilibili.video.open_fixed_video",
+      "bilibili.video.open_comments",
+      "bilibili.video.to_background",
+      "bilibili.social.open_search",
+      "bilibili.social.open_uploader_profile",
+      "bilibili.video.back_to_feed"
+    ],
+    "formal_v3": [],
+    "formal_v4": [],
+    "controls": [
+      "bilibili.control.settled_noop"
+    ],
+    "secondary": [
+      "bilibili.video.play",
+      "bilibili.video.pause"
+    ],
+    "stable": []
+  },
+  "operations": [
+    {
+      "operation_id": "bilibili.video.launch",
+      "app_id": "bilibili",
+      "module": "video",
+      "operation_family": "lifecycle",
+      "display_name": "Launch Bilibili",
+      "precondition": "BILIBILI_NOT_RUNNING",
+      "action_spec": {
+        "action": "launch"
+      },
+      "postcondition": "BILIBILI_HOME_READY",
+      "content_id": null,
+      "state_variables": [
+        "app_running",
+        "video_id",
+        "network_state"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "strong",
+      "requires_network": true,
+      "requires_fixed_content": false,
+      "automation_status": "INTERFACE_ONLY",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "bilibili.video.open_fixed_video",
+      "app_id": "bilibili",
+      "module": "video",
+      "operation_family": "navigation",
+      "display_name": "Open fixed BVID video",
+      "precondition": "BILIBILI_RUNNING_WITH_NETWORK",
+      "action_spec": {
+        "action": "open_video",
+        "url": "https://www.bilibili.com/video/BV1enYL6SEtU/",
+        "bvid": "BV1enYL6SEtU"
+      },
+      "postcondition": "FIXED_BVID_VIDEO_LOADED",
+      "content_id": "BV1enYL6SEtU",
+      "state_variables": [
+        "video_id",
+        "video_title",
+        "video_duration",
+        "playback_position",
+        "content_signature",
+        "cache_state",
+        "network_state",
+        "fullscreen_state",
+        "comment_state"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "strong",
+      "requires_network": true,
+      "requires_fixed_content": true,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "bilibili.video.seek_fixed_position",
+      "app_id": "bilibili",
+      "module": "video",
+      "operation_family": "playback_navigation",
+      "display_name": "Seek fixed BVID to fixed position",
+      "precondition": "FIXED_VIDEO_LOADED_WITH_DURATION_KNOWN",
+      "action_spec": {
+        "action": "seek",
+        "position_fraction": 0.3,
+        "bvid": "BV1enYL6SEtU"
+      },
+      "postcondition": "FIXED_PLAYBACK_POSITION_REACHED",
+      "content_id": "BV1enYL6SEtU",
+      "state_variables": [
+        "video_id",
+        "video_title",
+        "video_duration",
+        "playback_position",
+        "content_signature",
+        "cache_state",
+        "network_state"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "strong",
+      "requires_network": true,
+      "requires_fixed_content": true,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "bilibili.video.enter_fullscreen",
+      "app_id": "bilibili",
+      "module": "video",
+      "operation_family": "display",
+      "display_name": "Enter fixed BVID fullscreen",
+      "precondition": "FIXED_VIDEO_LOADED_NOT_FULLSCREEN",
+      "action_spec": {
+        "action": "enter_fullscreen",
+        "bvid": "BV1enYL6SEtU"
+      },
+      "postcondition": "FULLSCREEN_ACTIVE",
+      "content_id": "BV1enYL6SEtU",
+      "state_variables": [
+        "fullscreen_state",
+        "resolution",
+        "video_id",
+        "video_title",
+        "content_signature"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "strong",
+      "requires_network": true,
+      "requires_fixed_content": true,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "bilibili.video.exit_fullscreen",
+      "app_id": "bilibili",
+      "module": "video",
+      "operation_family": "display",
+      "display_name": "Exit fixed BVID fullscreen",
+      "precondition": "FIXED_VIDEO_LOADED_FULLSCREEN",
+      "action_spec": {
+        "action": "exit_fullscreen",
+        "bvid": "BV1enYL6SEtU"
+      },
+      "postcondition": "WINDOWED_VIDEO_ACTIVE",
+      "content_id": "BV1enYL6SEtU",
+      "state_variables": [
+        "fullscreen_state",
+        "resolution",
+        "video_id"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "strong",
+      "requires_network": true,
+      "requires_fixed_content": true,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "bilibili.video.switch_fixed_video",
+      "app_id": "bilibili",
+      "module": "video",
+      "operation_family": "navigation",
+      "display_name": "Reserve switch to second fixed video",
+      "precondition": "FIXED_VIDEO_LOADED_AND_SECOND_FIXED_VIDEO_AVAILABLE",
+      "action_spec": {
+        "action": "switch_video",
+        "selection": "second_fixed_video_required"
+      },
+      "postcondition": "SECOND_FIXED_VIDEO_LOADED",
+      "content_id": null,
+      "state_variables": [
+        "video_title",
+        "video_duration",
+        "playback_position",
+        "content_signature",
+        "cache_state",
+        "network_state"
+      ],
+      "primary_candidate": false,
+      "primary_eval": false,
+      "expected_signal": "strong",
+      "requires_network": true,
+      "requires_fixed_content": true,
+      "automation_status": "RESERVE_CANDIDATE",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION",
+      "exclude_reason": "second_fixed_video_not_configured"
+    },
+    {
+      "operation_id": "bilibili.video.open_comments",
+      "app_id": "bilibili",
+      "module": "video",
+      "operation_family": "comments",
+      "display_name": "Open comments on fixed BVID",
+      "precondition": "FIXED_VIDEO_PAGE_LOADED",
+      "action_spec": {
+        "action": "open_comments",
+        "selection": "observable_comments_tab",
+        "bvid": "BV1enYL6SEtU"
+      },
+      "postcondition": "COMMENTS_PANEL_CONTENT_CHANGED",
+      "content_id": "BV1enYL6SEtU",
+      "state_variables": [
+        "video_id",
+        "video_title",
+        "comment_state",
+        "content_signature",
+        "network_state"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "medium",
+      "requires_network": true,
+      "requires_fixed_content": true,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "bilibili.social.open_search",
+      "app_id": "bilibili",
+      "module": "social",
+      "operation_family": "search",
+      "display_name": "Open observable Bilibili search page",
+      "precondition": "BILIBILI_RUNNING_WITH_NETWORK",
+      "action_spec": {
+        "action": "open_search",
+        "selection": "observable_feed_search_entry"
+      },
+      "postcondition": "SEARCH_PAGE_VISIBLE",
+      "content_id": null,
+      "state_variables": [
+        "page_kind",
+        "search_state",
+        "content_signature",
+        "network_state"
+      ],
+      "primary_candidate": true,
+      "primary_eval": true,
+      "expected_signal": "strong",
+      "requires_network": true,
+      "requires_fixed_content": false,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "bilibili.social.open_uploader_profile",
+      "app_id": "bilibili",
+      "module": "social",
+      "operation_family": "navigation",
+      "display_name": "Open observed uploader profile",
+      "precondition": "FIXED_VIDEO_PAGE_LOADED",
+      "action_spec": {
+        "action": "open_uploader_profile",
+        "selection": "observable_uploader_header"
+      },
+      "postcondition": "UPLOADER_PROFILE_PAGE_VISIBLE",
+      "content_id": null,
+      "state_variables": [
+        "page_kind",
+        "profile_state",
+        "content_signature",
+        "network_state"
+      ],
+      "primary_candidate": true,
+      "primary_eval": true,
+      "expected_signal": "strong",
+      "requires_network": true,
+      "requires_fixed_content": true,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "bilibili.video.back_to_feed",
+      "app_id": "bilibili",
+      "module": "video",
+      "operation_family": "navigation",
+      "display_name": "Return from confirmed secondary page to feed",
+      "precondition": "BILIBILI_SECONDARY_PAGE",
+      "action_spec": {
+        "action": "back_to_feed",
+        "selection": "comments_page_then_observable_feed"
+      },
+      "postcondition": "BILIBILI_HOME_READY",
+      "content_id": null,
+      "state_variables": [
+        "page_kind",
+        "home_card_count",
+        "content_signature",
+        "network_state"
+      ],
+      "primary_candidate": true,
+      "primary_eval": true,
+      "expected_signal": "strong",
+      "requires_network": true,
+      "requires_fixed_content": false,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "bilibili.video.fixed_scroll",
+      "app_id": "bilibili",
+      "module": "video",
+      "operation_family": "viewport",
+      "display_name": "Scroll fixed BVID related panel",
+      "precondition": "FIXED_VIDEO_PAGE_LOADED",
+      "action_spec": {
+        "action": "scroll",
+        "distance_px": 480,
+        "selection": "observable_related_panel",
+        "bvid": "BV1enYL6SEtU"
+      },
+      "postcondition": "FIXED_RELATED_PANEL_SCROLLED",
+      "content_id": "BV1enYL6SEtU",
+      "state_variables": [
+        "video_id",
+        "video_title",
+        "content_signature",
+        "scroll_offset",
+        "comment_state",
+        "network_state"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "medium",
+      "requires_network": true,
+      "requires_fixed_content": true,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "bilibili.video.to_background",
+      "app_id": "bilibili",
+      "module": "video",
+      "operation_family": "app_lifecycle",
+      "display_name": "Send observed video page to background",
+      "precondition": "BILIBILI_FOREGROUND_WITH_FIXED_VIDEO",
+      "action_spec": {
+        "action": "background"
+      },
+      "postcondition": "BILIBILI_BACKGROUND",
+      "content_id": null,
+      "state_variables": [
+        "foreground_state",
+        "content_signature",
+        "network_state"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "strong",
+      "requires_network": true,
+      "requires_fixed_content": false,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "VALIDATED_ON_CURRENT_TARGET"
+    },
+    {
+      "operation_id": "bilibili.video.to_foreground",
+      "app_id": "bilibili",
+      "module": "video",
+      "operation_family": "app_lifecycle",
+      "display_name": "Bring to foreground",
+      "precondition": "BILIBILI_BACKGROUND_WITH_FIXED_VIDEO_STATE",
+      "action_spec": {
+        "action": "foreground"
+      },
+      "postcondition": "BILIBILI_FOREGROUND",
+      "content_id": "fixed_video_needs_device_validation",
+      "state_variables": [
+        "foreground_state",
+        "playback_position",
+        "cache_state",
+        "network_state"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "strong",
+      "requires_network": true,
+      "requires_fixed_content": true,
+      "automation_status": "INTERFACE_ONLY",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "bilibili.video.play",
+      "app_id": "bilibili",
+      "module": "video",
+      "operation_family": "playback",
+      "display_name": "Play fixed BVID",
+      "precondition": "FIXED_VIDEO_LOADED_PAUSED",
+      "action_spec": {
+        "action": "play",
+        "bvid": "BV1enYL6SEtU"
+      },
+      "postcondition": "FIXED_VIDEO_PLAYING",
+      "content_id": "BV1enYL6SEtU",
+      "state_variables": [
+        "video_id",
+        "playback_position",
+        "cache_state",
+        "network_state",
+        "playback_state"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "medium",
+      "requires_network": true,
+      "requires_fixed_content": true,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "bilibili.video.pause",
+      "app_id": "bilibili",
+      "module": "video",
+      "operation_family": "playback",
+      "display_name": "Pause fixed BVID",
+      "precondition": "FIXED_VIDEO_PLAYING",
+      "action_spec": {
+        "action": "pause",
+        "bvid": "BV1enYL6SEtU"
+      },
+      "postcondition": "FIXED_VIDEO_PAUSED",
+      "content_id": "BV1enYL6SEtU",
+      "state_variables": [
+        "video_id",
+        "playback_position",
+        "cache_state",
+        "network_state",
+        "playback_state"
+      ],
+      "primary_candidate": true,
+      "primary_eval": false,
+      "expected_signal": "medium",
+      "requires_network": true,
+      "requires_fixed_content": true,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "bilibili.social.search",
+      "app_id": "bilibili",
+      "module": "social",
+      "operation_family": "search",
+      "display_name": "Search",
+      "precondition": "BILIBILI_RUNNING_WITH_NETWORK",
+      "action_spec": {
+        "action": "search"
+      },
+      "postcondition": "SEARCH_RESULTS_VISIBLE",
+      "content_id": null,
+      "state_variables": [
+        "network_state",
+        "query"
+      ],
+      "primary_candidate": false,
+      "primary_eval": false,
+      "expected_signal": "unknown",
+      "requires_network": true,
+      "requires_fixed_content": false,
+      "automation_status": "DEFERRED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "bilibili.social.like",
+      "app_id": "bilibili",
+      "module": "social",
+      "operation_family": "social",
+      "display_name": "Like",
+      "precondition": "FIXED_VIDEO_LOADED_AND_LOGGED_IN",
+      "action_spec": {
+        "action": "like"
+      },
+      "postcondition": "LIKE_ACTIVE",
+      "content_id": "fixed_video_needs_device_validation",
+      "state_variables": [
+        "video_id",
+        "login_state",
+        "network_state"
+      ],
+      "primary_candidate": false,
+      "primary_eval": false,
+      "expected_signal": "unknown",
+      "requires_network": true,
+      "requires_fixed_content": true,
+      "automation_status": "DEFERRED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "bilibili.social.favorite",
+      "app_id": "bilibili",
+      "module": "social",
+      "operation_family": "social",
+      "display_name": "Favorite",
+      "precondition": "FIXED_VIDEO_LOADED_AND_LOGGED_IN",
+      "action_spec": {
+        "action": "favorite"
+      },
+      "postcondition": "FAVORITE_ACTIVE",
+      "content_id": "fixed_video_needs_device_validation",
+      "state_variables": [
+        "video_id",
+        "login_state",
+        "network_state"
+      ],
+      "primary_candidate": false,
+      "primary_eval": false,
+      "expected_signal": "unknown",
+      "requires_network": true,
+      "requires_fixed_content": true,
+      "automation_status": "DEFERRED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "bilibili.social.follow",
+      "app_id": "bilibili",
+      "module": "social",
+      "operation_family": "social",
+      "display_name": "Follow",
+      "precondition": "FIXED_VIDEO_LOADED_WITH_UPLOADER_AND_LOGGED_IN",
+      "action_spec": {
+        "action": "follow"
+      },
+      "postcondition": "FOLLOW_ACTIVE",
+      "content_id": "fixed_video_needs_device_validation",
+      "state_variables": [
+        "login_state",
+        "network_state"
+      ],
+      "primary_candidate": false,
+      "primary_eval": false,
+      "expected_signal": "unknown",
+      "requires_network": true,
+      "requires_fixed_content": true,
+      "automation_status": "DEFERRED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "bilibili.social.comment_input",
+      "app_id": "bilibili",
+      "module": "social",
+      "operation_family": "comments",
+      "display_name": "Enter comment text",
+      "precondition": "COMMENT_PANEL_VISIBLE_AND_LOGGED_IN",
+      "action_spec": {
+        "action": "type_comment"
+      },
+      "postcondition": "COMMENT_DRAFT_PRESENT",
+      "content_id": "fixed_video_needs_device_validation",
+      "state_variables": [
+        "comment_state",
+        "login_state",
+        "network_state"
+      ],
+      "primary_candidate": false,
+      "primary_eval": false,
+      "expected_signal": "unknown",
+      "requires_network": true,
+      "requires_fixed_content": true,
+      "automation_status": "DEFERRED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "bilibili.social.publish_comment",
+      "app_id": "bilibili",
+      "module": "social",
+      "operation_family": "comments",
+      "display_name": "Publish comment",
+      "precondition": "COMMENT_DRAFT_PRESENT_AND_LOGGED_IN",
+      "action_spec": {
+        "action": "publish_comment"
+      },
+      "postcondition": "COMMENT_PUBLISHED",
+      "content_id": "fixed_video_needs_device_validation",
+      "state_variables": [
+        "comment_state",
+        "login_state",
+        "network_state"
+      ],
+      "primary_candidate": false,
+      "primary_eval": false,
+      "expected_signal": "unknown",
+      "requires_network": true,
+      "requires_fixed_content": true,
+      "automation_status": "DEFERRED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "bilibili.feed.dynamic_recommendation",
+      "app_id": "bilibili",
+      "module": "feed",
+      "operation_family": "recommendation",
+      "display_name": "Open dynamic recommendation feed",
+      "precondition": "BILIBILI_RUNNING_WITH_NETWORK",
+      "action_spec": {
+        "action": "open_recommendations"
+      },
+      "postcondition": "RECOMMENDATION_FEED_VISIBLE",
+      "content_id": null,
+      "state_variables": [
+        "network_state",
+        "cache_state"
+      ],
+      "primary_candidate": false,
+      "primary_eval": false,
+      "expected_signal": "unknown",
+      "requires_network": true,
+      "requires_fixed_content": false,
+      "automation_status": "DEFERRED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "bilibili.account.login",
+      "app_id": "bilibili",
+      "module": "account",
+      "operation_family": "account",
+      "display_name": "Login",
+      "precondition": "TEST_ACCOUNT_AVAILABLE",
+      "action_spec": {
+        "action": "login"
+      },
+      "postcondition": "ACCOUNT_SESSION_ESTABLISHED",
+      "content_id": null,
+      "state_variables": [
+        "login_state",
+        "network_state"
+      ],
+      "primary_candidate": false,
+      "primary_eval": false,
+      "expected_signal": "unknown",
+      "requires_network": true,
+      "requires_fixed_content": false,
+      "automation_status": "DEFERRED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION"
+    },
+    {
+      "operation_id": "bilibili.control.settled_noop",
+      "app_id": "bilibili",
+      "module": "control",
+      "operation_family": "control",
+      "display_name": "Settled no-op control",
+      "precondition": "BILIBILI_RUNNING_WITH_NETWORK",
+      "action_spec": {
+        "action": "noop"
+      },
+      "postcondition": "BILIBILI_STATE_UNCHANGED",
+      "content_id": "BV1enYL6SEtU",
+      "state_variables": [
+        "app_running",
+        "video_id",
+        "video_duration",
+        "fullscreen",
+        "playback_state"
+      ],
+      "primary_candidate": false,
+      "primary_eval": false,
+      "expected_signal": "control",
+      "requires_network": true,
+      "requires_fixed_content": false,
+      "automation_status": "HDC_IMPLEMENTED",
+      "device_validation_status": "NEEDS_DEVICE_VALIDATION",
+      "exclude_reason": "control_only"
+    }
+  ]
+}

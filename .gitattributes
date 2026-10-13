@@ -1,0 +1,2 @@
+# Keep exported parameter files byte-for-byte stable for the documented SHA-256.
+models/** -text

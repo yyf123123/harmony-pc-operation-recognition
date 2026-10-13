@@ -1,0 +1,2 @@
+# Offline numerical evaluation/inference only. Collection uses Python stdlib.
+numpy>=1.26,<3

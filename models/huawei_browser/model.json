@@ -1,0 +1,22 @@
+{
+  "app_id": "huawei_browser",
+  "center_count": 5,
+  "center_csv": "centers.csv",
+  "center_to_operation": {
+    "0": "navigate_fixed_url",
+    "1": "open_downloads_page",
+    "2": "open_history_page",
+    "3": "open_settings",
+    "4": "open_tab_overview"
+  },
+  "decision": "argmax cosine similarity; no rejection threshold fitted",
+  "feature_schema": "cross_app.vma.feature.v2",
+  "fit_scope": "all eligible samples after cross-validation; deployment candidate, not held-out model",
+  "input": "2048-D L2 vector; normalize once before cosine scoring",
+  "method": "class_centroid_cosine",
+  "seed": 20261003,
+  "training_samples": 250,
+  "training_trials": 250,
+  "vector_dim": 2048,
+  "source": "Windows offline trial-grouped experiment; verified export, not device validation"
+}

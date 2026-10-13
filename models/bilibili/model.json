@@ -1,0 +1,23 @@
+{
+  "app_id": "bilibili",
+  "center_count": 6,
+  "center_csv": "centers.csv",
+  "center_to_operation": {
+    "0": "back_to_feed",
+    "1": "open_comments",
+    "2": "open_fixed_video",
+    "3": "open_search",
+    "4": "open_uploader_profile",
+    "5": "to_background"
+  },
+  "decision": "argmax cosine similarity; no rejection threshold fitted",
+  "feature_schema": "cross_app.vma.feature.v2",
+  "fit_scope": "all eligible samples after cross-validation; deployment candidate, not held-out model",
+  "input": "2048-D L2 vector; normalize once before cosine scoring",
+  "method": "class_centroid_cosine",
+  "seed": 20261003,
+  "training_samples": 180,
+  "training_trials": 180,
+  "vector_dim": 2048,
+  "source": "Windows offline trial-grouped experiment; verified export, not device validation"
+}
