@@ -57,11 +57,43 @@ python -m classification.predict --model models/bilibili/model.json --schema cro
 
 `features.build` 的 manifest 格式见 `docs/window_manifest.md`。WPS compact-only 读取现有窗口序列的聚合值，不重新解析大型报告；不完整 trial 的组级筛选需由使用者在评估前依据完整 18 类要求完成，不能把缺类数据称为失败采集。
 
-随附模型是 Windows 已验证的类中心参数，来源、SHA-256、标签映射与兼容说明见 `models/README.md`。没有训练样本。没有三应用自动选择或实时切换引擎；输入的应用身份由使用者指定。C++ 运行时尚未实现，在线特征一致性、时延和跨新 session 泛化尚未在此次整理中验证。
+随附模型是 Windows 已验证的类中心参数，来源、SHA-256、标签映射与兼容说明见 `models/README.md`。没有训练样本。没有已接入鸿蒙 PC 的三应用自动选择或实时切换引擎；离线命令显式指定应用，Native 库中的应用身份由独立适配层提供。在线特征一致性、时延和跨新 session 泛化尚未在鸿蒙 PC 系统服务中验证。
+
+## Native C++ 用户态库
+
+只需 CMake 3.16+ 和 C++17 编译器，即可在 Windows/macOS/Linux 上编译无设备依赖的静态库与离线命令。构建不需要 HDC，也不需要鸿蒙 SDK。`models/` 的三个 `centers.csv` 在运行时加载；C++ 中冻结的 schema、标签顺序及两份模型文件的 SHA-256 与已验证导出对应。先用标准库审计脚本核对元数据：
+
+```powershell
+python -m scripts.audit_models
+cmake -S . -B build/native
+cmake --build build/native --config Release
+ctest --test-dir build/native -C Release --output-on-failure
+```
+
+Windows 单配置生成器下示例程序通常在 `build/native/native/operation_predict.exe`；Visual Studio 多配置生成器下可能位于 `build/native/native/Release/`。下面的 `$predict` 取实际构建路径；输入是**外部** 2048 维 `vma_vectors_l2.csv`，输出必须是新文件：
+
+```powershell
+$predict = '.\build\native\native\operation_predict.exe'
+& $predict --models models --app bilibili --schema cross_app.vma.feature.v2 --vectors $biliVectors --output $biliPredictions
+& $predict --models models --app huawei_browser --schema cross_app.vma.feature.v2 --vectors $browserVectors --output $browserPredictions
+& $predict --models models --app wps --schema wps.vma.feature.v1 --vectors $wpsVectors --output $wpsPredictions
+```
+
+`operation_feature` 可从外部语义特征 CSV 生成向量。WPS 输入为聚合后的正向 excess pages；跨应用 v2 输入为 baseline、action、post-action 的 `Referenced` 语义页数。CSV 列为 `namespace,feature_key,pages`，命令例子和适配边界见 [Native 系统服务适配说明](docs/native_adaptation.md)。signed v3 是独立的 8192 维 schema，现有 2048 维模型及 C++ 入口都会拒绝它。
+
+现有 Native 用户态系统服务可链接 `harmony_operation_recognition` 静态库。可选的 OpenHarmony native SDK 交叉构建只产出本地二进制，不会部署设备：
+
+```powershell
+$env:OHOS_SDK = '<OpenHarmony native SDK 根目录>'
+cmake -S . -B build/ohos -G Ninja '-DCMAKE_TOOLCHAIN_FILE=native/cmake/openharmony.cmake' -DBUILD_TESTING=OFF
+cmake --build build/ohos
+```
+
+仓库不含系统服务注册配置。进入内网后，按 `native/examples/service_adapter_template.cpp` 实现焦点证据、窗口采样、Referenced 采集、权限与结果输出，并在真机核对；没有默认平滑或切换迟滞策略。
 
 ## 代码与验证
 
-`collector/` 是 C 构建、窗口、HDC、持久化和 WPS 编排；`apps/` 是实际 UI 采集器与操作目录；`features/` 保留冻结及 signed schema；`classification/` 提供评估、训练、导出和推理；`scripts/` 是稳定 Windows 入口。
+`collector/` 是 C 构建、窗口、HDC、持久化和 WPS 编排；`apps/` 是实际 UI 采集器与操作目录；`features/` 保留冻结及 signed schema；`classification/` 提供评估、训练、导出和推理；`native/` 是用户态 C++ 计算核心与待接适配接口；`scripts/` 是稳定 Windows 入口。
 
 ```bash
 python -m unittest discover -s tests -v

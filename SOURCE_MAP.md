@@ -63,3 +63,13 @@ Selected by invoked entry points and stored run results, not modification time. 
 | `fixtures\browser\page_01.html` | `apps\huawei_browser\fixtures\page_01.html` | `bf4c31904ed515996d35676efd8f6a5f95f8cd3f950c132e5f574ff34786f4ca` |
 | `fixtures\browser\page_02.html` | `apps\huawei_browser\fixtures\page_02.html` | `a16dbddd42d45664f1eee6452eb2c5149b1cbfdbd985b5e0668541840f482908` |
 | `fixtures\browser\page_03.html` | `apps\huawei_browser\fixtures\page_03.html` | `f56bd31b69d8627b9c2bb2caeab5b87739c877f1e496db6533057c51f2c62de5` |
+
+## Native C++ 对应关系
+
+| 已核实的源实现或产物 | 新文件 | 迁移范围 |
+|---|---|---|
+| `classification/predict.py`；`models/*/{model.json,centers.csv}` | `native/include/harmony_ops/recognition.hpp`、`native/src/recognition.cpp`、`native/examples/offline_predict.cpp` | 三应用冻结 schema、2048 维中心、中心标签顺序、L2 与 argmax 余弦计算；不包含训练数据 |
+| `features/vma_feature.py`、`features/wps.py`、`collector/snapshot.py` | `native/include/harmony_ops/feature.hpp`、`native/src/feature.cpp`、`native/examples/feature_vector.cpp` | 已聚合语义 Referenced 页数后的 median/excess/SHA-256 槽/log1p/L2 纯计算；原始 smaps 聚合仍由适配层提供 |
+| `models/*/{model.json,centers.csv}` 的已验证 SHA-256 | `scripts/audit_models.py` | 文件、schema、维度及标签映射审计 |
+| 新增用户态集成接口 | `native/include/harmony_ops/pipeline.hpp`、`native/src/pipeline.cpp`、`native/examples/service_adapter_template.cpp` | 独立应用身份、连续窗口、权限、特征供给与输出接口；设备实现仍待接 |
+| 本地真实资料（不入库） | `tests/compare_native_python.py`、`tests/compare_native_features.py` | 逐样本预测和特征数值对照脚本；数据通过命令行外部路径传入 |
