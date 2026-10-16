@@ -93,6 +93,8 @@ class OpsctlLinuxFailures(unittest.TestCase):
 import os
 import sys
 import time
+with open(os.environ["OPS_TEST_HELPER_LOG"], "a", encoding="utf-8") as marker:
+    marker.write("synthetic-focus-call\n")
 if os.environ.get("OPS_TEST_FOCUS_TIMEOUT") == "1":
     time.sleep(10)
 if sys.argv[1:] == ["getactivewindow"]:
@@ -104,7 +106,8 @@ else:
 ''', encoding="utf-8")
         helper.chmod(0o700)
         self.environment = {**os.environ, "PATH": str(helpers) + os.pathsep + os.environ.get("PATH", ""),
-                            "OPS_TEST_TARGET_PID": str(self.target.pid)}
+                            "OPS_TEST_TARGET_PID": str(self.target.pid),
+                            "OPS_TEST_HELPER_LOG": str(self.root / "synthetic-focus-calls.txt")}
 
     def _cleanup(self):
         if self.running is not None and self.running.poll() is None:
@@ -126,7 +129,7 @@ else:
             self.target.communicate(timeout=4)
         self.directory.cleanup()
 
-    def start(self, *, baseline_ms=50, extra_pid=None, timeout_helper=False):
+    def start(self, *, baseline_ms=50, extra_pid=None, timeout_helper=False, persistent=False):
         output = self.root / "result.jsonl"
         config = self.root / "synthetic-device.conf"
         covered = str(self.target.pid) + ("," + str(extra_pid) if extra_pid else "")
@@ -138,8 +141,10 @@ else:
         env = {**self.environment}
         if timeout_helper:
             env["OPS_TEST_FOCUS_TIMEOUT"] = "1"
-        self.running = subprocess.Popen([str(OPSCTL), "run", "--config", str(config),
-            "--window-id", "synthetic-window", "--event-id", "synthetic-event"],
+        argv = [str(OPSCTL), "serve" if persistent else "run", "--config", str(config)]
+        if not persistent:
+            argv.extend(("--window-id", "synthetic-window", "--event-id", "synthetic-event"))
+        self.running = subprocess.Popen(argv, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
         return output
 
@@ -197,6 +202,58 @@ else:
         output = self.start(timeout_helper=True)
         self.assert_failed_without_recognition(output, "focus_changed")
         self.assertLess(time.monotonic() - started, 4)
+
+    def assert_empty_serve_history(self, stdout, *, failed_windows):
+        records = [json.loads(line) for line in stdout.decode("utf-8").splitlines() if line.strip()]
+        histories = [row for row in records if row.get("schema") == "harmony.ops.history.v1"]
+        health = [row for row in records if row.get("schema") == "harmony.ops.health.v1"]
+        self.assertEqual(len(histories), 1, records)
+        self.assertEqual(histories[0]["events"], [])
+        self.assertTrue(health, records)
+        self.assertEqual(health[-1]["completed_windows"], 0)
+        self.assertEqual(health[-1]["failed_windows"], failed_windows)
+        self.assertFalse(health[-1]["running"])
+        self.assertFalse(any(row.get("schema") == "harmony.ops.recognized.v1" for row in records))
+
+    def test_serve_eof_does_not_touch_focus_or_procfs(self):
+        output = self.start(persistent=True, timeout_helper=True)
+        stdout, stderr = self.running.communicate(input=b"", timeout=5)
+        self.assertEqual(self.running.returncode, 0, stderr.decode())
+        self.assert_empty_serve_history(stdout, failed_windows=0)
+        self.assertFalse(output.exists(), "no trigger means no clear/sample/result")
+        self.assertFalse((self.root / "synthetic-focus-calls.txt").exists(), "idle serve must not call focus")
+
+    def test_serve_idle_sigint_stops_without_running_a_window(self):
+        output = self.start(persistent=True, timeout_helper=True)
+        deadline = time.monotonic() + 5
+        # The monitor thread is created only after model load and signal handler
+        # installation. Wait on this local lifecycle fact, not an arbitrary sleep.
+        while time.monotonic() < deadline:
+            self.assertIsNone(self.running.poll(), "serve exited before entering its idle loop")
+            tasks = Path("/proc") / str(self.running.pid) / "task"
+            if tasks.is_dir() and len(list(tasks.iterdir())) >= 2:
+                break
+            time.sleep(0.01)
+        else:
+            self.fail("serve did not initialize its cancellation monitor")
+        started = time.monotonic()
+        self.running.send_signal(signal.SIGINT)
+        stdout, stderr = self.running.communicate(timeout=3)
+        self.assertNotEqual(self.running.returncode, 0, stderr.decode())
+        self.assertLess(time.monotonic() - started, 2)
+        self.assert_empty_serve_history(stdout, failed_windows=0)
+        self.assertFalse(output.exists())
+        self.assertFalse((self.root / "synthetic-focus-calls.txt").exists())
+
+    def test_serve_keeps_running_after_two_failed_controlled_triggers(self):
+        output = self.start(persistent=True, extra_pid=2147483647)
+        stdout, stderr = self.running.communicate(input=b"window1\tevent1\nwindow2\tevent2\nSTOP\n", timeout=8)
+        self.assertNotEqual(self.running.returncode, 0, stderr.decode())
+        self.assert_empty_serve_history(stdout, failed_windows=2)
+        records = [json.loads(line) for line in output.read_text(encoding="utf-8").splitlines() if line.strip()]
+        self.assertEqual([row["event_id"] for row in records], ["event1", "event2"])
+        self.assertTrue(all(row.get("code") == "process_changed" and row.get("status") == "error" for row in records))
+        self.assertNotIn(b'"status":"success"', stdout)
 
 
 if __name__ == "__main__":
