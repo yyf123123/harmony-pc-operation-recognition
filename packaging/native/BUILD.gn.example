@@ -1,0 +1,21 @@
+# Add these sources to the existing Native user-space service's GN build.
+# Use that service's actual OHOS dependencies and C++ runtime configuration.
+static_library("harmony_vma_collector") {
+  sources = [ "../source/collector/device/collector.c" ]
+  include_dirs = [ "../source/collector/include" ]
+}
+static_library("harmony_operation_recognition") {
+  sources = [
+    "../source/native/src/recognition.cpp",
+    "../source/native/src/feature.cpp",
+    "../source/native/src/pipeline.cpp",
+    "../source/native/src/runtime.cpp",
+    "../source/native/src/replay.cpp",
+    "../source/native/src/service_c.cpp",
+  ]
+  include_dirs = [ "../source/native/include", "../source/collector/include" ]
+  cflags_cc = [ "-std=c++17", "-fexceptions" ]
+  deps = [ ":harmony_vma_collector" ]
+}
+# Add platform_bridge.cpp and :harmony_operation_recognition to the host target.
+# Match the existing service's exceptions, libc++, visibility and architecture.

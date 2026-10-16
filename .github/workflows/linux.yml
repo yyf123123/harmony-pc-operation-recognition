@@ -27,8 +27,24 @@ jobs:
       - run: cmake -S . -B build/native -DCMAKE_BUILD_TYPE=Release
       - run: cmake --build build/native --parallel 2
       - run: ctest --test-dir build/native --output-on-failure
+      - run: build/native/native/opsctl selftest --models models --fixtures native/fixtures/raw-window
       - run: python -m tests.check_native_errors --native build/native/native/operation_predict --models models
       - run: python -m unittest discover -s tests -v
         env:
           NATIVE_BUILD_DIR: build/native
           LINUX_VMA_COLLECTOR: build/native/collector/linux/linux_vma_collect
+
+  portable:
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S . -B build/native -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build/native --config Release --parallel 2
+      - run: ctest --test-dir build/native -C Release --output-on-failure
+      - if: runner.os == 'macOS'
+        run: build/native/native/opsctl selftest --models models --fixtures native/fixtures/raw-window
+      - if: runner.os == 'Windows'
+        run: build/native/native/Release/opsctl.exe selftest --models models --fixtures native/fixtures/raw-window

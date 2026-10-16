@@ -1,6 +1,6 @@
 # 慧京任务：Linux WPS 数据集采集与质量交付
 
-当前采集入口为 `python -m scripts.linux capture`，外部动作计划格式和运行步骤见 [Linux 说明](../README.md)。现有入口只提供一次操作 smoke；在目标机器补齐且验证动作脚本、PID 选择、焦点与成功判据后，才能规划完整 18 类 trial 和正式批采。结构检查通过不代表桌面动作通过。
+优先使用 `python -m scripts.linux_run --config 文件` 统一构建、自检和报告，见[桌面 smoke 操作说明](../desktop_smoke.md)。Codex 已实现输入、保存、加粗的安全原语，慧京主要在已有 Linux 桌面校准 AT-SPI/焦点并执行 smoke，返回实际证据。其余 15 类需继续由 Codex 根据校准证据补实现；18 类全通过前正式批采关闭。旧 `scripts.linux capture` 仍保留，结构检查不代表桌面动作通过。
 
 ## 目标
 

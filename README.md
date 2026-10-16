@@ -2,7 +2,13 @@
 
 私有代码仓库：鸿蒙 PC 的设备采集、VMA 特征构造和已知应用内的操作识别。数据、SDK、日志、截图和构建产物均不随仓库分发。原项目和原始数据保持在原位置。
 
-Linux 分支新增本机 WPS 采集、回放、现有 Native 推理与历史接口，运行方法和团队分工见 [Linux 版本](docs/linux/README.md)，项目状态见 [PROJECT_STATUS.md](PROJECT_STATUS.md)。它保留原 Windows/OpenHarmony 路线；Linux 桌面与真实 WPS 验收仍需按目标环境执行。
+Linux 分支提供共用 Native 运行核心、严格原始采集/特征链、C ABI、持续历史与 `opsctl` 双入口；先带 [内网操作卡](docs/handoff/OPERATOR_CARD.md) 和离线包进入现有 Native 用户态服务。无需设备 Python。运行方法及团队分工见 [Linux 版本](docs/linux/README.md)，实际验收状态见 [PROJECT_STATUS.md](PROJECT_STATUS.md)。真实 WPS 18 类和鸿蒙服务仍需目标环境验收。
+
+```sh
+cmake -S . -B build/native -DCMAKE_BUILD_TYPE=Release
+cmake --build build/native --parallel 2
+build/native/native/opsctl selftest --models models --fixtures native/fixtures/raw-window
+```
 
 ## 新电脑最短离线步骤
 

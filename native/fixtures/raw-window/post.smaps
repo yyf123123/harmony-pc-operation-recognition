@@ -1,0 +1,29 @@
+00400000-00440000 r-xp 00000000 00:00 1 /system/lib/libdemo.so
+Size: 256 kB
+Rss: 64 kB
+Referenced: 24 kB
+
+00600000-00640000 rw-p 00000000 00:00 0 [heap]
+Size: 256 kB
+Rss: 64 kB
+Referenced: 40 kB
+
+00700000-00740000 rw-p 00000000 00:00 0
+Size: 256 kB
+Rss: 64 kB
+Referenced: 8 kB
+
+00800000-00840000 r--p 00000000 00:00 2 /test//fixture document.bin (deleted)
+Size: 256 kB
+Rss: 64 kB
+Referenced: 4 kB
+
+00900000-00940000 rw-p 00000000 00:00 0 [stack]
+Size: 256 kB
+Rss: 64 kB
+Referenced: 12 kB
+
+00a00000-00a40000 r--p 00000000 00:00 2 /test//fixture document.bin (deleted)
+Size: 256 kB
+Rss: 64 kB
+Referenced: 16 kB

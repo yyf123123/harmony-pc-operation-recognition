@@ -1,12 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
-project(harmony_pc_operation_recognition LANGUAGES CXX)
+project(harmony_pc_operation_recognition LANGUAGES C CXX)
 
 include(CTest)
+find_package(Threads REQUIRED)
+add_subdirectory(collector)
 add_subdirectory(native)
-
-# Reuse the frozen WPS C collector on Linux; do not cross-build it for macOS
-# or silently substitute a different smaps/segment transform.
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    enable_language(C)
-    add_subdirectory(collector/linux)
-endif()

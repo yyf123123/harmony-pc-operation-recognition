@@ -4,6 +4,10 @@
 
 ## 已完成
 
+本轮 M1＋M2 开发已加入严格 C 采集库、完整 Native 原始特征链、ServiceRuntime、窄 C ABI/C++ 包装、宿主纯回放、opsctl 双入口与持续 serve、移植包工具/脚本/操作卡。Mac 四项 CTest、三应用逐阶段 Python 对照、模型审计/负例通过；Mac 离线包重建/自检/回放通过，ARM64 OpenHarmony SDK 交叉构建通过。Linux 原生与新增故障测试、最终包验证正在进行，完成证据见后续状态更新；不计入 M3/M4/M5。
+
+Codex 另实现统一 Linux 启动器、三项安全 WPS 原语、版本化 Markov/词表、Native 事件规范化和有效期文件页候选查询。真实桌面 AT-SPI、其余 15 类、真实模型/页映射及在线联调未完成。缺真实制品保持 not_ready/unknown。
+
 - Mac 克隆与 Git/API 访问恢复，确认仓库为 private，基线 main 为 `269915cc3da022cf1d2b620c5e68069e8a45f4c6`；已创建并推送新仓库的 `linux` 分支。
 - 已合并 `AGENTS.md`，四人任务、数据集要求、接口和环境约束见 `docs/linux/`。旧仓库与数据保留，不再向旧公开仓库交付本项新代码。
 - Linux CMake 目标复用已有 C 采集器；新增显式 PID 集合的单操作 WPS smoke、保存/回放、Native 推理和识别事件入口。

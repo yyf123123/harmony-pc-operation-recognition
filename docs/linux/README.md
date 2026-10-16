@@ -2,7 +2,9 @@
 
 本分支基于 main `269915cc3da022cf1d2b620c5e68069e8a45f4c6`。复用现有 C 采集器的 WPS VMA 分段、语义键与实际页数，复用 Python 冻结特征公式和 C++17 类中心推理。原 Windows/OpenHarmony 入口、三应用模型及其 SHA 不变。
 
-当前提供：Linux 本机显式 PID 集合采集、一次操作的 smoke 协议、离线回放、Native 推理、可选识别事件导出和有界历史接口。尚未提供经桌面验证的 18 类 Linux UI 动作脚本、常驻焦点切换服务、下一步预测模型或页级映射采集器。这些工作与负责人的任务分别列在下方。
+当前优先使用共用 Native 核心：`opsctl doctor/selftest/replay/run/serve` 完成诊断、原始回放与受控窗口；serve 或宿主持久对象实际维护识别历史。静态库与 C ABI 供既有服务链接，内网包见[操作卡](../handoff/OPERATOR_CARD.md)。
+
+[统一启动器与桌面 smoke](desktop_smoke.md) 自动构建、自检和生成新目录/报告。输入、保存、加粗三项安全原语已实现，仍需慧京桌面校准与验收；其余 15 类待适配，正式批采关闭。[版本化 Markov、历史与页面候选](followup_runtime.md) 已有适配和回放，无真实制品时明确 not_ready/unknown。尚无真实 18 类、鸿蒙服务或页面收益验收。
 
 ## 构建和预检
 
@@ -17,7 +19,7 @@ ctest --test-dir build/linux --output-on-failure
 .venv/bin/python -m scripts.audit_models
 ```
 
-Linux 上额外生成 `build/linux/collector/linux/linux_vma_collect`。macOS 只生成已有 Native 目标，真实 `/proc` 入口会明确拒绝运行；回放和推理可在 macOS 使用。
+Linux 上额外生成 `build/linux/collector/linux/linux_vma_collect`。macOS 可构建严格文本解析、Native 核心和离线入口，真实 `/proc` 明确拒绝运行。
 
 ## 外部动作计划
 
@@ -84,7 +86,7 @@ Linux 上额外生成 `build/linux/collector/linux/linux_vma_collect`。macOS �
 
 回放从窗口页数重建 baseline 中位数、正向 excess 与 ACTION/POST_ACTION 最大值，输出 2048 维向量及元数据，保留 mock/source/capture profile。Native CLI 独立校验模型和 schema，不使用真值进行推理；可选事件从 Native 预测标签映射到规范操作 ID。
 
-`collector.linux.history.OperationHistory` 接收该事件，显式 reset 后维护会话/实例历史，去重事件 ID、保留真实重复操作、拒绝乱序及真值来源，并输出 `prediction_request()`。这是下一步模型的请求接口，没有伪造的预测结果或默认平滑；模型及其词表仍需单独适配。
+`collector.linux.history.OperationHistory` 接收该事件，显式 reset 后维护会话/实例历史，去重事件 ID、保留真实重复操作、拒绝乱序及真值来源，并输出 `prediction_request()`。`event_from_native_runtime` 将 Native 预测旧标签映射到规范 ID；Markov 模型/词表与有效期页映射见 followup_runtime.md，真实制品和独立会话联调仍待交付。
 
 ## 团队任务
 

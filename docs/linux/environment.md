@@ -10,3 +10,11 @@
 - 默认 `5s × 2 baseline / 15s action / 5s post`，并记录 Linux capture profile。验证动作包含在 action 区间内；超时或窗口超长导致失败。修改时长须保留独立 profile，评估不混用。
 - C 采集器通过 `sysconf` 使用目标系统页大小。VMA Referenced 是区域汇总，不提供精确页身份或访问列表；不能把它充作操作—文件页真值。
 - 凭据由官方 GitHub 登录和本地凭据管理维护；不写入计划、环境规则、源码、日志或交接材料。所有本项提交仅进入新的私有仓库。
+
+## 本轮目标环境
+
+- Mac：共用核心、回放、打包、已有 OpenHarmony SDK ARM64 交叉编译；不采集 Linux `/proc`。
+- server-lbz：无活动桌面的当前账号，仅在本项目唯一新目录进行原生构建、自有测试子进程 `/proc`、取消/失败和持久运行器验证；不接管其他用户的桌面，不安装系统依赖，不 sudo。SSH 使用 BatchMode=yes、StrictHostKeyChecking=yes；主机密钥/权限错误停止，不关闭校验或修改 known_hosts。
+- 慧京的 Linux 桌面：真实 WPS 操作、焦点、18 类成功判据及正式数据；先少量可验证动作，再完整 smoke，最后批采。
+- fpga513：本轮不使用，无 WPS、无需 FPGA 硬件，不修改其项目或环境。
+- Native 默认 Linux 焦点桥每次比对主进程的当前子孙树与显式授权 PID 集合；覆盖变化立即失效，不自动清理新 PID 的引用位。鸿蒙实际覆盖由已确认的焦点/进程接口提供。两种入口共享 clear_refs 协议，禁止并发清位。

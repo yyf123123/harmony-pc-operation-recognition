@@ -1,0 +1,6 @@
+namespace,feature_key,pages
+ANON,(anonymous)|segment=AnonPage other|perms=rw-p,3.0
+ANON,[heap]|segment=native heap|perms=rw-p,6.0
+ANON,[stack]|segment=stack|perms=rw-p,1.0
+FILE,/system/lib/libdemo.so|segment=.so|perms=r-xp,10.0
+FILE,/test/fixture document.bin (deleted)|segment=FilePage other|perms=r--p,5.0

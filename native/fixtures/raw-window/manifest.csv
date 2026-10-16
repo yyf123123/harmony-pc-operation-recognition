@@ -1,0 +1,5 @@
+phase,index,pid,page_size,smaps
+baseline,0,101,4096,baseline0.smaps
+baseline,1,101,4096,baseline1.smaps
+action,0,101,4096,action.smaps
+post,0,101,4096,post.smaps

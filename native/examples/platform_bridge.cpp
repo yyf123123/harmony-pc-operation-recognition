@@ -4,7 +4,8 @@
 // app/window/root PID/current child coverage from an actual focus authority.
 // Returning failure keeps standalone diagnostics/replay usable and live capture
 // explicitly unavailable until the real system API has been connected.
-extern "C" int ReadOperationFocus(void*,hop_focus*) { return 1; }
+// -1 means no compiled platform provider; 0 success; other values failure.
+extern "C" int ReadOperationFocus(void*,hop_focus*) { return -1; }
 
 // The only host-specific wiring point. Existing Native services pass their
 // actual foreground/window/root-process adapter here. Missing/failed focus
