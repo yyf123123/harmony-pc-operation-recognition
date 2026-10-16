@@ -94,7 +94,7 @@ static bool contains_ci(const char *haystack, const char *needle)
 
 static bool has_file_suffix(const char *path, const char *suffix)
 {
-    char clean[PATH_MAX];
+    char clean[4096];
     clean_deleted_suffix(path, clean, sizeof(clean));
     return ends_with(clean, suffix);
 }
