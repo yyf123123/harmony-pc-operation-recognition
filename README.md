@@ -2,6 +2,8 @@
 
 私有代码仓库：鸿蒙 PC 的设备采集、VMA 特征构造和已知应用内的操作识别。数据、SDK、日志、截图和构建产物均不随仓库分发。原项目和原始数据保持在原位置。
 
+Linux 分支新增本机 WPS 采集、回放、现有 Native 推理与历史接口，运行方法和团队分工见 [Linux 版本](docs/linux/README.md)，项目状态见 [PROJECT_STATUS.md](PROJECT_STATUS.md)。它保留原 Windows/OpenHarmony 路线；Linux 桌面与真实 WPS 验收仍需按目标环境执行。
+
 ## 新电脑最短离线步骤
 
 Python 3.10+；只做离线评估需要 NumPy，不需要设备、HDC 或鸿蒙 SDK。
