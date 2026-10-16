@@ -1,8 +1,8 @@
 # Linux 链路接口草案
 
-状态：已核对 Native `pipeline.hpp`、WPS catalog 和特征 schema。Linux 采集/识别事件/历史请求已实现；下一步预测及操作—文件页接口仍需与对应负责人核对，不替代已有公开 C++ API。
+状态：已核对 Native `pipeline.hpp`、WPS catalog 和特征 schema。Linux 采集/识别事件/历史请求、版本化 Markov 制品和文件页候选适配器已实现；真实模型、映射及桌面/时延验收仍需与对应负责人核对，不替代已有公开 C++ API。
 
-当前 Python 入口为 `scripts.linux`，历史接口为 `collector.linux.history`。Native 分类结果的旧标签通过 catalog `legacy_label` 转成规范操作 ID；页级映射尚无实际实现。
+当前 Python 入口为 `scripts.linux`，历史接口为 `collector.linux.history`。Native 分类结果的旧标签通过 catalog `legacy_label` 转成规范操作 ID；页级映射已有严格身份/版本/有效期查询适配器，尚无真实映射制品。详见 [历史与页面联调说明](followup_runtime.md)。统一启动及桌面 smoke 见 [操作说明](desktop_smoke.md)。
 
 ## 共同关联键
 

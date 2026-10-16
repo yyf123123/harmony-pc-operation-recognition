@@ -24,6 +24,40 @@ def event_from_prediction(sample: dict, prediction: dict) -> dict:
             "score": score, "score_kind": "cosine_similarity", "is_mock": sample["is_mock"]}
 
 
+def event_from_native_runtime(event: dict) -> dict:
+    """Convert a successful unlabeled Native runtime result using catalog labels.
+
+    Native replay fixtures or error/health events cannot enter live history.
+    No automation operation name or validation truth is read by this adapter.
+    """
+    if (event.get("schema") != "harmony.ops.recognized.v1" or event.get("status") != "success"
+            or event.get("app_id") != "wps" or event.get("source") != "controlled_live_window"
+            or event.get("method") != "vma-centroid" or event.get("clock") != "monotonic_ns"
+            or event.get("feature_schema") != "wps.vma.feature.v1"):
+        raise ValueError("a successful Native controlled-window recognition event is required")
+    for field in ("event_id", "window_id", "session_id", "app_instance_id"):
+        if not isinstance(event.get(field), str) or not event[field]:
+            raise ValueError("incomplete Native runtime event identity")
+    start, end = event.get("start_ns"), event.get("end_ns")
+    if type(start) is not int or type(end) is not int or not 0 < start < end:
+        raise ValueError("invalid Native runtime monotonic interval")
+    score = event.get("cosine_similarity")
+    if type(score) not in (int, float) or not math.isfinite(score):
+        raise ValueError("nonfinite Native recognition score")
+    labels = {str(operation.action_spec["legacy_label"]): operation.operation_id
+              for operation in WpsAdapter().catalog.operations}
+    label = event.get("operation_label")
+    if label not in labels:
+        raise ValueError("Native label is absent from the frozen WPS catalog")
+    return {"schema_version": "linux.operation-event.v1", "app_id": "wps",
+            "session_id": event["session_id"], "app_instance_id": event["app_instance_id"],
+            "event_id": event["event_id"], "window_id": event["window_id"],
+            "operation_id": labels[label], "end_monotonic_ns": end,
+            "source_kind": "recognition", "method": "native_class_centroid_cosine",
+            "score": score, "score_kind": "cosine_similarity", "is_mock": False,
+            "native_schema": event["schema"]}
+
+
 class OperationHistory:
     """Use one store per running session; explicit event IDs identify duplicates.
 
