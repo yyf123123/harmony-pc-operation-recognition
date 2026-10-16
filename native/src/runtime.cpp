@@ -53,6 +53,8 @@ void AppendOutput(const std::filesystem::path& file,const std::string& json) {
     std::ofstream output(file,std::ios::binary|std::ios::app);
     if (!output || !(output << json << '\n') || !output.flush())
         throw RuntimeError(RuntimeCode::OutputFailed,"JSONL output failed: "+file.string());
+    output.close();
+    if (!output) throw RuntimeError(RuntimeCode::OutputFailed,"JSONL output close failed: "+file.string());
 }
 } // namespace
 
@@ -342,6 +344,8 @@ RecognizedEvent ServiceRuntime::RunControlled(const std::string& window,const st
             const auto deadline=start+std::uint64_t(duration_ms)*1000000;
             timing.start_ns=start; timing.target_end_ns=deadline;
             bridge_.Stage(phase,index,start);
+            if (MonotonicNowNs()>deadline)
+                throw RuntimeError(RuntimeCode::SamplingTimeout,"phase callback exceeded the observation interval");
             while (MonotonicNowNs()<deadline) {
                 validate();
                 const auto poll=std::min(deadline,MonotonicNowNs()+std::uint64_t(config_.focus_poll_ms)*1000000);

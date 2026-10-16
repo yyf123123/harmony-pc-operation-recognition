@@ -60,7 +60,7 @@ int main(int argc,char **argv) {
     hop_default_config(&config); hop_default_callbacks(&callbacks);
     CHECK(config.abi_version==HOP_ABI_VERSION && config.struct_size==sizeof(config));
     config.models_root=argv[1]; config.session_id="synthetic-c-abi-session";
-    config.baseline_ms=1; config.action_ms=1; config.post_ms=1; config.focus_poll_ms=1;
+    config.baseline_ms=10; config.action_ms=10; config.post_ms=10; config.focus_poll_ms=1;
     config.max_sample_ms=100;
     callbacks.context=&host; callbacks.focus=focus; callbacks.stage=stage;
     callbacks.identity=identity; callbacks.clear_refs=clear_refs;

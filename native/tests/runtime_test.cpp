@@ -61,7 +61,7 @@ struct FakeBridge : PlatformBridge {
 };
 RuntimeConfig Config(const std::filesystem::path& models) {
     RuntimeConfig config; config.models_root=models; config.session_id="synthetic-session";
-    config.baseline_ms=1; config.action_ms=1; config.post_ms=1; config.focus_poll_ms=1;
+    config.baseline_ms=10; config.action_ms=10; config.post_ms=10; config.focus_poll_ms=1;
     config.max_sample_ms=50; config.history_limit=2; config.dedup_limit=8;
     return config;
 }
@@ -112,7 +112,10 @@ int main(int argc,char** argv) {
             {FakeBridge::Timeout,RuntimeCode::SamplingTimeout},{FakeBridge::Output,RuntimeCode::OutputFailed}};
         for (const auto& [fault,expected]:faults) {
             bridge.Reset(); bridge.fault=fault;
-            auto test_config=config; test_config.max_sample_ms=fault==FakeBridge::Timeout?2:50;
+            // Timeout's stage callback takes 20 ms, beyond the 10 ms observation
+            // interval but inside the 50 ms collection allowance. It must fail
+            // independently of collection overhead.
+            auto test_config=config;
             ServiceRuntime failed(test_config,bridge); failed.Start();
             Expect(expected,[&]{failed.RunControlled("bad-window","bad-event");});
             Require(failed.History().empty() && Successes(bridge)==0,"failed window must not predict or update history");
@@ -120,6 +123,18 @@ int main(int argc,char** argv) {
             if (fault!=FakeBridge::Output) Require(!bridge.published.empty() && bridge.published.back().find("\"status\":\"error\"")!=std::string::npos,"structured error record required");
         }
         bridge.Reset(); bridge.fault=FakeBridge::None;
+        const auto bad_output=std::filesystem::temp_directory_path()/
+            ("harmony-ops-output-test-"+std::to_string(MonotonicNowNs()));
+        Require(std::filesystem::create_directory(bad_output),"create isolated filesystem failure fixture");
+        bridge.publish_to_file=true;
+        auto file_config=config; file_config.output_jsonl=bad_output;
+        ServiceRuntime file_failure(file_config,bridge); file_failure.Start();
+        Expect(RuntimeCode::OutputFailed,[&]{file_failure.RunControlled("file-window","file-event");});
+        Require(file_failure.History().empty() && file_failure.Health().last_code==RuntimeCode::OutputFailed,
+                "real output failure must not update history");
+        Require(std::filesystem::is_empty(bad_output) && std::filesystem::remove(bad_output),
+                "failed JSONL output must not leave a success record");
+        bridge.publish_to_file=false; bridge.Reset();
         const auto saved_action=bridge.action, saved_post=bridge.post;
         bridge.action={{{"ANON","synthetic-zero"},0}}; bridge.post=bridge.action;
         ServiceRuntime zero(config,bridge); zero.Start();
