@@ -1,5 +1,5 @@
 #include "harmony_ops/runtime.hpp"
-#include "harmony_ops/service.h"
+#include "harmony_ops/platform_bridge.h"
 
 #include <algorithm>
 #include <atomic>
@@ -27,8 +27,6 @@
 #include <unistd.h>
 extern char** environ;
 #endif
-
-extern "C" int ReadOperationFocus(void*,hop_focus*);
 
 namespace {
 using namespace harmony_ops;

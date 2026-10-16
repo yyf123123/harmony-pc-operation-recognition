@@ -3,6 +3,7 @@
 static_library("harmony_vma_collector") {
   sources = [ "../source/collector/device/collector.c" ]
   include_dirs = [ "../source/collector/include" ]
+  cflags = [ "-fPIC" ]
 }
 static_library("harmony_operation_recognition") {
   sources = [
@@ -14,7 +15,7 @@ static_library("harmony_operation_recognition") {
     "../source/native/src/service_c.cpp",
   ]
   include_dirs = [ "../source/native/include", "../source/collector/include" ]
-  cflags_cc = [ "-std=c++17", "-fexceptions" ]
+  cflags_cc = [ "-std=c++17", "-fexceptions", "-fPIC" ]
   deps = [ ":harmony_vma_collector" ]
 }
 # Add platform_bridge.cpp and :harmony_operation_recognition to the host target.

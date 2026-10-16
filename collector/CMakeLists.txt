@@ -2,7 +2,7 @@ add_library(harmony_vma_collector STATIC device/collector.c)
 target_include_directories(harmony_vma_collector PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
-set_target_properties(harmony_vma_collector PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES)
+set_target_properties(harmony_vma_collector PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES POSITION_INDEPENDENT_CODE ON)
 if(MSVC)
     target_compile_options(harmony_vma_collector PRIVATE /W4)
 else()

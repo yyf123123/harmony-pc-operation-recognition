@@ -7,6 +7,7 @@ add_library(harmony_operation_recognition STATIC
     src/service_c.cpp)
 target_include_directories(harmony_operation_recognition PUBLIC include)
 target_compile_features(harmony_operation_recognition PUBLIC cxx_std_17)
+set_target_properties(harmony_operation_recognition PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(harmony_operation_recognition PUBLIC harmony_vma_collector Threads::Threads)
 if(MSVC)
     target_compile_options(harmony_operation_recognition PRIVATE /W4)
@@ -29,6 +30,10 @@ add_library(operation_adapter_template OBJECT examples/service_adapter_template.
 target_link_libraries(operation_adapter_template PRIVATE harmony_operation_recognition)
 
 if(BUILD_TESTING)
+    if(UNIX)
+        add_library(operation_host_link_smoke SHARED "${HARMONY_OPS_PLATFORM_BRIDGE}")
+        target_link_libraries(operation_host_link_smoke PRIVATE harmony_operation_recognition)
+    endif()
     add_executable(operation_pipeline_test tests/pipeline_test.cpp)
     target_link_libraries(operation_pipeline_test PRIVATE harmony_operation_recognition)
     add_test(NAME operation_pipeline_test
