@@ -322,6 +322,7 @@ RecognizedEvent ServiceRuntime::RunControlled(const std::string& window,const st
             for (const auto& process:event.processes)
                 if (!SameIdentity(process,bridge_.Identity(process.pid)))
                     throw RuntimeError(RuntimeCode::ProcessChanged,"PID start identity changed");
+            cancelled();
         };
         const auto capture=[&](const std::string& phase,std::size_t index,std::uint32_t duration_ms) {
             validate();
