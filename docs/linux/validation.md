@@ -9,7 +9,7 @@
 - 三应用模型元数据与 SHA-256 审计通过；未修改模型文件或 Native 特征/分类公式。
 - Native CMake Release 构建与 `operation_pipeline_test` 通过。
 - 修复 Python 3.10 缺少 `enum.StrEnum` 的基线兼容问题，保留状态值与字符串语义。
-- Python 测试覆盖 Linux 时序、失败留存、焦点 PID、实际页大小、PID 启动身份、回放重建、mock 元数据、Native 特征一致性，以及历史去重/会话隔离/真值排除。精确数量见提交前的测试输出和后续 CI；仅 Linux 真实进程测试在 macOS 跳过。
+- Python 共 31 项测试覆盖 Linux 时序、失败留存、焦点 PID、实际页大小、PID 启动身份、回放重建、mock 元数据、Native 特征一致性，以及历史去重/会话隔离/真值排除；在 macOS 上 30 项通过，1 项 Linux 真实进程测试按平台跳过。
 - Native 负例检查通过：signed v3、错误维度、零向量、非有限数值、错误中心映射均被拒绝。
 
 ## 外部真实 WPS 历史数据的本机对照
@@ -29,5 +29,7 @@
 ## Linux 验证入口与剩余项
 
 工作流 `.github/workflows/linux.yml` 在 Linux 分支上构建 C/C++，运行 Python 3.10/3.12、模型审计、CTest、Native 负例，以及真实 `/proc` 子进程清引用/采样测试。CI 仅使用受控自建测试进程，不运行 WPS、不采集用户桌面、不上传测试数据制品。实际执行结果须以 Actions 记录为证据，不能仅凭工作流存在声称通过。
+
+代码提交 `98fe15215e211aa5304c15e790bfd487fa435953` 的 [Linux CI 记录](https://github.com/yyf123123/harmony-pc-operation-recognition/actions/runs/38844454914) 已完成并通过。Python 3.10、3.12 两组均成功编译 C/C++、通过 1 项 CTest 和全部 31 项 Python 测试；`test_real_linux_child_process_clear_and_capture` 在两组均实际运行通过。另有 5 个 Native 拒绝路径检查通过。后续文档提交不改变此次验证的源码。
 
 尚未验证：目标 Linux 的 WPS PID/子进程归属、独立桌面焦点、18 类动作与成功判据、真实窗口质量、已有模型在 Linux 上的操作识别准确率、连续会话实时效果、下一步模型接入、页级映射与内核消费者。
