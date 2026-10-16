@@ -16,8 +16,11 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--binary", action="append", default=[], metavar="TARGET=BUILD_DIR")
     parser.add_argument("--elf-reader", type=Path, help="optional host readelf / llvm-readelf for ELF dependency audit")
+    parser.add_argument("--validated-code-commit", default="", help="40-character commit actually used for Native validation")
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]
+    if args.validated_code_commit and not re.fullmatch(r"[0-9a-f]{40}", args.validated_code_commit):
+        parser.error("validated code commit must be a full lowercase Git SHA")
     output = args.output.resolve()
     if output.exists():
         parser.error("output must be a new directory")
@@ -35,10 +38,13 @@ def main() -> int:
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(path, target)
     shutil.copy2(repo / "collector/CMakeLists.txt", source / "collector/CMakeLists.txt")
+    shutil.copytree(repo / "docs", source / "docs")
+    shutil.copy2(repo / "PROJECT_STATUS.md", source / "PROJECT_STATUS.md")
     shutil.copytree(repo / "models", output / "models")
     shutil.copytree(repo / "native/fixtures", output / "fixtures")
     shutil.copytree(repo / "packaging/native", output / "operator")
     shutil.copytree(repo / "docs/handoff", output / "docs")
+    shutil.copy2(repo / "docs/linux/environment.md", output / "docs/ENVIRONMENT.md")
     shutil.copy2(repo / "native/examples/platform_bridge.cpp", output / "operator/platform_bridge.cpp")
     shutil.copytree(repo / "native/include", output / "include")
     shutil.copytree(repo / "collector/include", output / "include", dirs_exist_ok=True)
@@ -83,6 +89,7 @@ def main() -> int:
     commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, text=True, capture_output=True).stdout.strip()
     dirty = bool(subprocess.run(["git", "status", "--porcelain"], cwd=repo, check=True, text=True, capture_output=True).stdout)
     (output / "BUILD_INFO.json").write_text(json.dumps({"schema": "harmony.ops.handoff.v1", "source_commit": commit, "source_dirty": dirty,
+        "validated_code_commit": args.validated_code_commit or commit,
         "packaging_host": platform.system() + "-" + platform.machine(), "targets": builds,
         "runtime": "C++17 standard library, C/POSIX runtime, threads; exact ABI must be checked on target",
         "fixture_provenance": "synthetic only; no accuracy claim", "sdk_included": False}, ensure_ascii=False, indent=2) + "\n")
