@@ -1,6 +1,6 @@
 # M1＋M2 软件验收记录
 
-日期：2026-10-16。验证代码提交 `0b0a3655ed6fffb23219dede7f7b184650a26b66`。后续文档/打包记录不改变 Native 算法，实际包内 source_commit 与各文件 SHA 见 BUILD_INFO.json / SHA256SUMS。
+日期：2026-10-16。最终验证代码提交 `6a908eae55b49bd783de6849586041abf5b022a5`，包含公开桥接头文件与两库默认 PIC（可链接共享服务）。原始完整计算验收提交为 `0b0a365`。后续文档记录不改变 Native 算法，实际包内 source_commit 与各文件 SHA 见 BUILD_INFO.json / SHA256SUMS。
 
 | 环境 | 通过项 |
 | --- | --- |
@@ -11,7 +11,7 @@
 | OpenHarmony SDK 6.1.0.105 / API 23 / Clang 15.0.4 | 官方 ohos.toolchain.cmake、arm64-v8a Release 交叉构建两个静态库及 opsctl，通过；未在设备运行 |
 | 离线包 | Mac 在新包目录从同包源码重建、无 Python 子进程自检及三应用回放通过；SHA 清单全通过；最终包复核记录见交付目录 |
 
-[GitHub 四组任务](https://github.com/yyf123123/harmony-pc-operation-recognition/actions/runs/38869217128) 均 success。Linux 原生运行报告保留在 server-lbz 本项目新目录 `harmony_ops_runs/native-20261016-0b0a365/outputs/headless/20261016T074452Z-371d878a8e21/report.json`。没有连接其他用户桌面、运行 hdc 或采集真实 WPS 文档。
+[GitHub 最终四组任务](https://github.com/yyf123123/harmony-pc-operation-recognition/actions/runs/38870358235) 均 success。Mac/Linux 额外编译并链接 shared host bridge，核实 PIC 链接能力。Linux 原生运行报告保留在 server-lbz 本项目新目录 `harmony_ops_runs/native-20261016-6a908ea/outputs/headless/20261016T075629Z-1d867ccd072d/report.json`。没有连接其他用户桌面、运行 hdc 或采集真实 WPS 文档。
 
 ## M1 数学对照
 

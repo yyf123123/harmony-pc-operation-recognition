@@ -23,9 +23,10 @@ Codex 另实现统一 Linux 启动器、三项安全 WPS 原语、版本化 Mark
 | --- | --- |
 | 源码与私有仓库 | 已克隆；分支已创建；最终实现提交以 Git 历史为准 |
 | macOS 离线 | 四项 CTest、45/54 Python 通过、9 项 Linux 环境跳过；移植包重建、自检与三应用回放通过 |
-| Linux CI | `0b0a365` 两组各 54 项 Python、4 项 CTest、模型负例/自检通过；Actions run `38869217128`，另 macOS/Windows 两组通过 |
+| Linux CI | 最终代码 `6a908ea` 两组各 54 项 Python、4 项 CTest、模型负例/自检通过；Actions run `38870358235`，另 macOS/Windows 两组通过 |
 | server-lbz | 同一提交原生构建、自有进程真实 `/proc`、取消/子进程变化/serve 及相关 32 项测试全部通过；未接桌面，未装系统依赖 |
 | OpenHarmony ARM64 | SDK 6.1.0.105 / API 23 交叉构建通过，动态需 libc++_shared.so / libc.so；未设备运行 |
+| 服务构建接线 | 公开 platform_bridge.h 可直接调用薄启动桥；两静态库默认 PIC，Mac/Linux 共享服务链接 smoke 通过 |
 | Linux WPS 采集/UI | 未验证；需真实 WPS、准确 PID 集合、动作脚本和独立焦点证据 |
 | 实时识别/切换 | 受控完整窗口及持续运行器已实现；实际 WPS 切换/自由分段未验证，默认至少约 30 秒 |
 | 下一步预测 | 版本化 Markov/词表与识别历史回放已实现；缺真实制品不就绪，在线独立会话验收待完成 |
