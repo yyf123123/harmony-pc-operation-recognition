@@ -1,0 +1,18 @@
+add_library(harmony_vma_collector STATIC device/collector.c)
+target_include_directories(harmony_vma_collector PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>)
+set_target_properties(harmony_vma_collector PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES)
+if(MSVC)
+    target_compile_options(harmony_vma_collector PRIVATE /W4)
+else()
+    target_compile_options(harmony_vma_collector PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_subdirectory(linux)
+endif()
+if(BUILD_TESTING)
+    add_executable(operation_collector_test tests/collector_test.c)
+    target_link_libraries(operation_collector_test PRIVATE harmony_vma_collector)
+    add_test(NAME operation_collector_test COMMAND operation_collector_test)
+endif()

@@ -12,11 +12,14 @@ def build(sdk, output):
     sysroot = sdk / 'sysroot'
     if not clang.is_file() or not sysroot.is_dir():
         raise FileNotFoundError('Need an OpenHarmony native SDK with llvm/bin/clang and sysroot')
-    source = Path(__file__).with_name('device') / 'collect.c'
+    collector_root = Path(__file__).parent
+    source = collector_root / 'device' / 'collect.c'
+    library_source = collector_root / 'device' / 'collector.c'
     output.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run([str(clang), '-O2', '-std=c11', '-Wall', '-Wextra',
                     '-target', 'aarch64-linux-ohos', f'--sysroot={sysroot}',
-                    '-o', str(output), str(source)], check=True)
+                    '-I', str(collector_root / 'include'),
+                    '-o', str(output), str(source), str(library_source)], check=True)
     return output
 
 

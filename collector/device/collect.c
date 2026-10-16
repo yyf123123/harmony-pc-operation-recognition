@@ -16,22 +16,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-typedef enum {
-    SEG_ARK_TS_HEAP = 0,
-    SEG_NATIVE_HEAP,
-    SEG_ANON_PAGE_OTHER,
-    SEG_FILE_PAGE_OTHER,
-    SEG_STACK,
-    SEG_SO,
-    SEG_HAP,
-    SEG_TTF,
-    SEG_DEV,
-    SEG_GL,
-    SEG_GRAPH,
-    SEG_GUARD,
-    SEG_UNKNOWN,
-    SEG_COUNT
-} SegmentKind;
+#include "segment_classifier.h"
+#include "harmony_ops/collector.h"
 
 typedef struct {
     uint64_t start;
@@ -70,25 +56,6 @@ typedef struct {
     const Vma *v;
 } VmaRefRow;
 
-static const char *segment_name(SegmentKind s)
-{
-    switch (s) {
-    case SEG_ARK_TS_HEAP: return "ark ts heap";
-    case SEG_NATIVE_HEAP: return "native heap";
-    case SEG_ANON_PAGE_OTHER: return "AnonPage other";
-    case SEG_FILE_PAGE_OTHER: return "FilePage other";
-    case SEG_STACK: return "stack";
-    case SEG_SO: return ".so";
-    case SEG_HAP: return ".hap";
-    case SEG_TTF: return ".ttf";
-    case SEG_DEV: return "dev";
-    case SEG_GL: return "GL";
-    case SEG_GRAPH: return "Graph";
-    case SEG_GUARD: return "guard";
-    default: return "unknown";
-    }
-}
-
 static void usage(const char *argv0)
 {
     fprintf(stderr,
@@ -117,116 +84,6 @@ static void trim_right(char *s)
                      s[n - 1] == ' ' || s[n - 1] == '\t')) {
         s[--n] = '\0';
     }
-}
-
-static bool starts_with(const char *s, const char *prefix)
-{
-    return strncmp(s, prefix, strlen(prefix)) == 0;
-}
-
-static void clean_deleted_suffix(const char *in, char *out, size_t len)
-{
-    const char *suffix = " (deleted)";
-    size_t n;
-    snprintf(out, len, "%s", in);
-    n = strlen(out);
-    if (n >= strlen(suffix) && strcmp(out + n - strlen(suffix), suffix) == 0) {
-        out[n - strlen(suffix)] = '\0';
-    }
-}
-
-static bool ends_with(const char *s, const char *suffix)
-{
-    size_t s_len;
-    size_t suffix_len;
-
-    if (s == NULL || suffix == NULL) return false;
-    s_len = strlen(s);
-    suffix_len = strlen(suffix);
-    if (suffix_len > s_len) return false;
-    return strcmp(s + s_len - suffix_len, suffix) == 0;
-}
-
-static bool contains_ci(const char *haystack, const char *needle)
-{
-    size_t needle_len;
-
-    if (haystack == NULL || needle == NULL) return false;
-    needle_len = strlen(needle);
-    if (needle_len == 0) return true;
-
-    for (const char *p = haystack; *p != '\0'; p++) {
-        size_t i;
-        for (i = 0; i < needle_len; i++) {
-            if (p[i] == '\0') return false;
-            if (tolower((unsigned char)p[i]) != tolower((unsigned char)needle[i])) break;
-        }
-        if (i == needle_len) return true;
-    }
-    return false;
-}
-
-static bool has_file_suffix(const char *path, const char *suffix)
-{
-    char clean[PATH_MAX];
-    clean_deleted_suffix(path, clean, sizeof(clean));
-    return ends_with(clean, suffix);
-}
-
-static bool is_dev_path(const char *path)
-{
-    return starts_with(path, "/dev/") || starts_with(path, "anon_inode:");
-}
-
-static bool is_guard_path(const char *path, const char *perms)
-{
-    return contains_ci(path, "guard") ||
-           strcmp(path, "[anon:thread signal stack guard page]") == 0 ||
-           (perms != NULL && perms[0] == '-' && perms[1] == '-' && perms[2] == '-');
-}
-
-static bool is_graph_path(const char *path)
-{
-    return contains_ci(path, "graph") ||
-           contains_ci(path, "graphic") ||
-           contains_ci(path, "gralloc") ||
-           contains_ci(path, "surface") ||
-           contains_ci(path, "framebuffer") ||
-           contains_ci(path, "frame_buffer") ||
-           contains_ci(path, "bufferqueue") ||
-           contains_ci(path, "sharedbuffer");
-}
-
-static bool is_gl_path(const char *path)
-{
-    return contains_ci(path, "gl") ||
-           contains_ci(path, "egl") ||
-           contains_ci(path, "gles") ||
-           contains_ci(path, "gpu") ||
-           contains_ci(path, "mali") ||
-           contains_ci(path, "vulkan") ||
-           contains_ci(path, "render");
-}
-
-static bool is_ark_ts_heap_path(const char *path)
-{
-    return contains_ci(path, "ark ts heap") ||
-           contains_ci(path, "arkts heap") ||
-           contains_ci(path, "ark heap") ||
-           contains_ci(path, "ets heap") ||
-           contains_ci(path, "js heap") ||
-           (contains_ci(path, "ark") && contains_ci(path, "heap"));
-}
-
-static bool is_native_heap_path(const char *path)
-{
-    if (strcmp(path, "[heap]") == 0) return true;
-    return contains_ci(path, "native heap") ||
-           contains_ci(path, "malloc") ||
-           contains_ci(path, "jemalloc") ||
-           contains_ci(path, "scudo") ||
-           contains_ci(path, "libc_malloc") ||
-           contains_ci(path, "heap");
 }
 
 static bool mkdir_p(const char *path)
@@ -359,7 +216,13 @@ static bool parse_smaps(pid_t pid, VmaList *list, char *err, size_t err_len)
     Vma current;
     bool have_current = false;
     bool ok = true;
+    hc_process_identity before, after;
+    hc_error identity_error = {0};
 
+    if (hc_read_identity((int32_t)pid, &before, &identity_error) != HC_OK) {
+        snprintf(err, err_len, "%s", identity_error.message);
+        return false;
+    }
     snprintf(path, sizeof(path), "/proc/%ld/smaps", (long)pid);
     fp = fopen(path, "r");
     if (fp == NULL) {
@@ -401,8 +264,30 @@ static bool parse_smaps(pid_t pid, VmaList *list, char *err, size_t err_len)
         ok = false;
     }
 
+    if (ok && ferror(fp)) {
+        snprintf(err, err_len, "cannot finish reading %s: %s", path, strerror(errno));
+        ok = false;
+    }
+    if (ok && list->count == 0) {
+        snprintf(err, err_len, "empty smaps for PID %ld", (long)pid);
+        ok = false;
+    }
+    for (size_t i = 0; ok && i < list->count; ++i) {
+        if (list->items[i].referenced_kb < 0) {
+            snprintf(err, err_len, "missing or invalid Referenced for PID %ld", (long)pid);
+            ok = false;
+        }
+    }
     free(line);
-    fclose(fp);
+    if (fclose(fp) != 0 && ok) {
+        snprintf(err, err_len, "cannot close %s: %s", path, strerror(errno));
+        ok = false;
+    }
+    if (ok && (hc_read_identity((int32_t)pid, &after, &identity_error) != HC_OK ||
+               before.start_ticks != after.start_ticks)) {
+        snprintf(err, err_len, "process identity changed while reading smaps");
+        ok = false;
+    }
     return ok;
 }
 
@@ -504,57 +389,20 @@ static void classify_segments(VmaList *list, const char *exe_path)
 
     for (size_t i = 0; i < list->count; i++) {
         Vma *v = &list->items[i];
-        bool is_anon = (v->inode == 0 && v->path[0] == '\0') || starts_with(v->path, "[anon:");
-
-        if (is_guard_path(v->path, v->perms)) {
-            v->segment = SEG_GUARD;
-        } else if (starts_with(v->path, "[stack")) {
-            v->segment = SEG_STACK;
-        } else if (is_ark_ts_heap_path(v->path)) {
-            v->segment = SEG_ARK_TS_HEAP;
-        } else if (is_native_heap_path(v->path)) {
-            v->segment = SEG_NATIVE_HEAP;
-        } else if (is_dev_path(v->path)) {
-            v->segment = SEG_DEV;
-        } else if (is_gl_path(v->path)) {
-            v->segment = SEG_GL;
-        } else if (is_graph_path(v->path)) {
-            v->segment = SEG_GRAPH;
-        } else if (has_file_suffix(v->path, ".so")) {
-            v->segment = SEG_SO;
-        } else if (has_file_suffix(v->path, ".hap")) {
-            v->segment = SEG_HAP;
-        } else if (has_file_suffix(v->path, ".ttf") || has_file_suffix(v->path, ".otf")) {
-            v->segment = SEG_TTF;
-        } else if (is_anon) {
-            v->segment = SEG_ANON_PAGE_OTHER;
-        } else if (v->path[0] != '\0') {
-            v->segment = SEG_FILE_PAGE_OTHER;
-        } else {
-            v->segment = SEG_UNKNOWN;
-        }
+        v->segment = hc_classify_wps(v->path, v->perms, v->inode);
     }
 }
 
 static bool clear_referenced_bits(pid_t pid, char *err, size_t err_len)
 {
-    char path[64];
-    int fd;
-    ssize_t n;
-
-    snprintf(path, sizeof(path), "/proc/%ld/clear_refs", (long)pid);
-    fd = open(path, O_WRONLY);
-    if (fd < 0) {
-        snprintf(err, err_len, "cannot open %s: %s", path, strerror(errno));
+    hc_process_identity identity;
+    hc_error error = {0};
+    hc_status status = hc_read_identity((int32_t)pid, &identity, &error);
+    if (status == HC_OK) status = hc_clear_refs(&identity, &error);
+    if (status != HC_OK) {
+        snprintf(err, err_len, "%s: %s", hc_status_name(status), error.message);
         return false;
     }
-    n = write(fd, "1\n", 2);
-    if (n != 2) {
-        snprintf(err, err_len, "cannot write %s: %s", path, strerror(errno));
-        close(fd);
-        return false;
-    }
-    close(fd);
     return true;
 }
 
@@ -585,30 +433,40 @@ static void print_compact_header(FILE *out)
 
 static bool print_compact_pid(pid_t pid, long page_size)
 {
-    VmaList list = {0};
-    char err[256] = {0};
+    hc_process_identity identity;
+    hc_snapshot snapshot = {0};
+    hc_error error = {0};
+    hc_status status;
     char comm[256];
-
     read_comm(pid, comm, sizeof(comm));
-    if (!parse_smaps(pid, &list, err, sizeof(err))) {
-        fprintf(stderr, "%s\n", err);
+    status = hc_read_identity((int32_t)pid, &identity, &error);
+    if (status == HC_OK) status = hc_collect(&identity, HC_SEGMENT_WPS, &snapshot, &error);
+    if (status != HC_OK) {
+        fprintf(stderr, "%s: %s\n", hc_status_name(status), error.message);
         return false;
     }
-    classify_segments(&list, "");
-    for (size_t i = 0; i < list.count; i++) {
-        const Vma *v = &list.items[i];
-        long referenced_kb = v->referenced_kb >= 0 ? v->referenced_kb : 0;
-        const char *pathname = v->path[0] ? v->path : "(anonymous)";
+    if ((uint64_t)page_size != snapshot.page_size) {
+        fprintf(stderr, "page size changed during collection\n");
+        hc_snapshot_free(&snapshot);
+        return false;
+    }
+    for (size_t i = 0; i < snapshot.count; i++) {
+        const hc_vma *v = &snapshot.vmas[i];
+        const char *pathname = v->pathname[0] ? v->pathname : "(anonymous)";
         fprintf(stdout, "%ld\t", (long)pid);
         print_compact_text_cell(stdout, comm);
         fprintf(stdout, "\t");
-        print_compact_text_cell(stdout, segment_name(v->segment));
-        fprintf(stdout, "\t%s\t%ld\t%llu\t", v->perms, referenced_kb,
-                kb_to_pages(referenced_kb, page_size));
+        print_compact_text_cell(stdout, v->segment);
+        fprintf(stdout, "\t%s\t%" PRIu64 "\t%" PRIu64 "\t", v->permissions,
+                v->referenced_bytes / 1024, v->referenced_pages);
         print_compact_text_cell(stdout, pathname);
         fputc('\n', stdout);
     }
-    vma_list_free(&list);
+    hc_snapshot_free(&snapshot);
+    if (ferror(stdout)) {
+        fprintf(stderr, "cannot write compact output\n");
+        return false;
+    }
     return true;
 }
 
@@ -773,12 +631,16 @@ static bool analyze_pid(pid_t pid, const char *out_path, bool include_vma_table)
     long page_size = sysconf(_SC_PAGESIZE);
     FILE *out;
 
-    if (page_size <= 0) page_size = 4096;
+    if (page_size <= 0) {
+        fprintf(stderr, "cannot determine actual page size\n");
+        return false;
+    }
     read_comm(pid, comm, sizeof(comm));
     read_exe_path(pid, exe_path, sizeof(exe_path));
 
     if (!parse_smaps(pid, &list, err, sizeof(err))) {
         fprintf(stderr, "%s\n", err);
+        vma_list_free(&list);
         return false;
     }
     classify_segments(&list, exe_path);
@@ -796,9 +658,11 @@ static bool analyze_pid(pid_t pid, const char *out_path, bool include_vma_table)
         return false;
     }
     print_report(out, pid, comm, exe_path, &list, page_size, include_vma_table);
-    fclose(out);
+    bool output_failed = ferror(out) != 0;
+    if (fclose(out) != 0) output_failed = true;
     vma_list_free(&list);
-    return true;
+    if (output_failed) fprintf(stderr, "cannot finish writing report %s\n", out_path);
+    return !output_failed;
 }
 
 int main(int argc, char **argv)
@@ -905,11 +769,15 @@ int main(int argc, char **argv)
     if (compact_vma) {
         long page_size = sysconf(_SC_PAGESIZE);
         int ok_count = 0;
-        if (page_size <= 0) page_size = 4096;
+        if (page_size <= 0) {
+            fprintf(stderr, "cannot determine actual page size\n");
+            return 2;
+        }
         print_compact_header(stdout);
         for (int i = 0; i < pid_count; i++) {
             if (print_compact_pid(pids[i], page_size)) ok_count++;
         }
+        if (fflush(stdout) != 0) return 2;
         return ok_count == pid_count ? 0 : 2;
     }
 
