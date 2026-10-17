@@ -77,4 +77,4 @@ python -m scripts.linux_desktop readiness
 | document text differs / semantic success failed | 校准测试文档、选区和焦点；失败输出单独保留 |
 | operation has no Linux semantic verifier | 此类仍待实现，不能用占位动作加入正式数据 |
 
-完整 18 类的前置状态、动作、语义成功检查和实际 smoke 全部通过之后，才能另行开放正式批采。输入/保存/加粗的单次成功不能代替该验收，也不能证明模型在 Linux 上的准确率。
+完整 18 类的前置状态、动作、语义成功检查和全类预检全部通过之后，[batch 入口](batch_runner.md) 自动开放正式配额。输入/保存/加粗的单次成功不能代替该验收，也不能证明模型在 Linux 上的准确率。

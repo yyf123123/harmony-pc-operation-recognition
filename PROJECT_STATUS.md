@@ -16,6 +16,7 @@ Codex 另实现统一 Linux 启动器、三项安全 WPS 原语、版本化 Mark
 
 移植包生产入口 `scripts.package_native`，只带允许清单源码、模型、三架构产物、合成夹具、SHA/依赖清单和无网络脚本。设备不需要 Python；现场只补真实焦点调用、宿主构建/服务注册和权限。M3/M4/M5 真实验收未完成；新增 batch 软件仅在目标机全类预检通过后开放正式配额。以下旧提交结果保留作历史溯源。
 
+- 2026-10-17：Linux 批采/入库代码 `b28f6b0` 已推送。Mac Python 61 项通过、9 项 Linux 跳过；Linux CI 3.10/3.12 各 70 项及四项 CTest 通过，Mac/Windows 构建自检通过；server-lbz 原生构建、自检及相关 48 项全部通过。另实测 BatchProcfs 自有进程采集及新增子进程拒绝；全配额仅用合成夹具验收，无真实 WPS 数据。见[本轮验证](docs/linux/validation.md#2026-10-17linux-批采与入库工程)。
 - Mac 克隆与 Git/API 访问恢复，确认仓库为 private，基线 main 为 `269915cc3da022cf1d2b620c5e68069e8a45f4c6`；已创建并推送新仓库的 `linux` 分支。
 - 已合并 `AGENTS.md`，四人任务、数据集要求、接口和环境约束见 `docs/linux/`。旧仓库与数据保留，不再向旧公开仓库交付本项新代码。
 - Linux CMake 目标复用已有 C 采集器；新增显式 PID 集合的单操作 WPS smoke、保存/回放、Native 推理和识别事件入口。
@@ -28,9 +29,9 @@ Codex 另实现统一 Linux 启动器、三项安全 WPS 原语、版本化 Mark
 | 层级 | 当前状态与证据 |
 | --- | --- |
 | 源码与私有仓库 | 已克隆；分支已创建；最终实现提交以 Git 历史为准 |
-| macOS 离线 | 四项 CTest、45/54 Python 通过、9 项 Linux 环境跳过；移植包重建、自检与三应用回放通过 |
-| Linux CI | 最终代码 `6a908ea` 两组各 54 项 Python、4 项 CTest、模型负例/自检通过；Actions run `38870358235`，另 macOS/Windows 两组通过 |
-| server-lbz | 同一提交原生构建、自有进程真实 `/proc`、取消/子进程变化/serve 及相关 32 项测试全部通过；未接桌面，未装系统依赖 |
+| macOS 离线 | 本轮 61/70 Python 通过，9 项 Linux 跳过；`b28f6b0` portable CI 构建、自检及四项 CTest 通过；既有内网包回放证据保留 |
+| Linux CI | `b28f6b0` 两组各 70 项 Python、4 项 CTest、模型负例/自检通过；Actions run `39003633908`，另 macOS/Windows 两组通过 |
+| server-lbz | `b28f6b0` 原生构建、自检、四项 CTest 和相关 48 项全部通过；实际 BatchProcfs 自有进程采样/新增子进程拒绝通过；未接桌面、未安装系统依赖 |
 | OpenHarmony ARM64 | SDK 6.1.0.105 / API 23 交叉构建通过，动态需 libc++_shared.so / libc.so；未设备运行 |
 | 服务构建接线 | 公开 platform_bridge.h 可直接调用薄启动桥；两静态库默认 PIC，Mac/Linux 共享服务链接 smoke 通过 |
 | Linux WPS 采集/UI | 未验证；需真实 WPS、准确 PID 集合、动作脚本和独立焦点证据 |
@@ -41,7 +42,7 @@ Codex 另实现统一 Linux 启动器、三项安全 WPS 原语、版本化 Mark
 
 ## 下一步及负责人
 
-1. 用户 / 师兄：确认内网目标服务、真实焦点 API、宿主 ABI/注册及权限；按操作卡先宿主内回放再真实采集。Codex 负责通用代码和剩余适配，不要求用户重写算法。
+1. Codex / 师兄：当前继续 Linux M4，将慧京实际自动化映射接入 batch、验收回传数据及固定模型识别序列；真实桌面未通过前不宣称完成。内网线由用户确认目标服务、焦点 API、宿主 ABI/注册及权限，Codex 据此补接线，先宿主回放再真实采集。
 2. 慧京：任务要求已由用户转交；复用已有自动化按 [18 类首批任务](docs/linux/batch_collection_v1.md) 先完成全类 2 轮预检（36），通过后由 [batch 执行器](docs/linux/batch_runner.md) 完成 900 独立操作和 600 连续操作。尚无桌面通过或正式数据；代码适配由 Codex 负责。
 3. 璟雯：提供操作—文件页真实观测及稳定页身份，先与 VMA 采集约定唯一的清引用时序，避免相互干扰。
 4. 欣彤：将其他反推方法接入共同识别事件，建立同会话、同窗口的横向评估。
