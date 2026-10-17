@@ -2,7 +2,8 @@
 
 No dependency installer, sudo, application launch, process kill or cache clearing.
 Configuration selects selftest, an unlabeled Native controlled window, or one
-verified desktop smoke action. Formal 18-class batch collection remains gated.
+verified desktop smoke action, or an external-automation batch gated by a full
+36-window preflight. Desktop validation is still performed on the target host.
 """
 from __future__ import annotations
 
@@ -38,8 +39,8 @@ def run(config: dict, *, repo: Path = ROOT) -> dict:
     if config.get("schema_version") != "linux.launcher.v1":
         raise ValueError("unsupported launcher configuration")
     mode = config.get("mode", "selftest")
-    if mode not in ("selftest", "controlled", "desktop-smoke"):
-        raise ValueError("only selftest, controlled and desktop-smoke are available; formal batch remains gated")
+    if mode not in ("selftest", "controlled", "desktop-smoke", "batch"):
+        raise ValueError("only selftest, controlled, desktop-smoke and batch are available")
     output = _new_run(config["output_root"])
     report = {"schema_version": "linux.run-report.v1", "mode": mode, "status": "running",
               "output": str(output), "architecture": platform.machine(), "platform": platform.system(),
@@ -82,15 +83,32 @@ def run(config: dict, *, repo: Path = ROOT) -> dict:
         command("build", ["cmake", "--build", build, "--parallel", str(config.get("build_jobs", 2))])
         opsctl = build / "native" / "opsctl"
         fixtures = repo / config.get("fixtures", "native/fixtures/raw-window")
+        batch_config = None
+        if mode == "batch":
+            from collector.linux.batch import validate_config
+            batch_config = validate_config(json.loads(Path(config["batch_config"]).expanduser().read_text()))
         doctor = [opsctl, "doctor", "--models", repo / "models", "--app", "wps"]
-        for pid in config.get("pids", []):
+        for pid in batch_config["pids"] if batch_config else config.get("pids", []):
             if type(pid) is not int or pid <= 0:
                 raise ValueError("pids must be explicit positive integers")
             doctor.extend(("--pid", str(pid)))
         command("doctor", doctor)
         command("native-selftest", [opsctl, "selftest", "--models", repo / "models", "--fixtures", fixtures])
         command("native-tests", ["ctest", "--test-dir", build, "--output-on-failure"])
-        if mode == "controlled":
+        if mode == "batch":
+            from collector.linux.batch import run_batch
+            from collector.linux.batch_export import export_batch
+            batch_config = {**batch_config, "build_dir": str(build)}
+            batch = run_batch(batch_config, output / "batch", repo=repo)
+            report.update(formal_collection_enabled=batch["formal_collection_enabled"],
+                          validation_scope=batch["validation_scope"], batch_report=str(output/"batch/report.json"),
+                          valid_windows=batch["valid_windows"])
+            if batch["status"] != "passed":
+                raise RuntimeError("batch did not complete; inspect batch/report.json, then use linux_batch run --resume")
+            exported = export_batch(output / "batch", output / "dataset")
+            report.update(desktop_validation="configured_full_class_verifiers_passed",
+                          dataset_report=str(output/"dataset/quality.json"), formal_windows=exported["formal_windows"])
+        elif mode == "controlled":
             # The core receives only opaque window/event IDs, never operation labels.
             if not config.get("device_config"):
                 raise ValueError("controlled mode requires a Native device_config")
@@ -129,7 +147,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     report = run(json.loads(args.config.read_text(encoding="utf-8")))
     print(json.dumps({"status": report["status"], "report": str(Path(report["output"]) / "report.json"),
-                      "formal_collection_enabled": False}, ensure_ascii=False))
+                      "formal_collection_enabled": report.get("formal_collection_enabled", False)}, ensure_ascii=False))
     return 0 if report["status"] == "passed" else 1
 
 

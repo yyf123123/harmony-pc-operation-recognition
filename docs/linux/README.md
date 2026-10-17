@@ -4,7 +4,7 @@
 
 当前优先使用共用 Native 核心：`opsctl doctor/selftest/replay/run/serve` 完成诊断、原始回放与受控窗口；serve 或宿主持久对象实际维护识别历史。静态库与 C ABI 供既有服务链接，内网包见[操作卡](../handoff/OPERATOR_CARD.md)。
 
-[统一启动器与桌面 smoke](desktop_smoke.md) 自动构建、自检和生成新目录/报告。输入、保存、加粗三项安全原语已实现，仍需慧京桌面校准与验收；其余 15 类待适配，正式批采关闭。[版本化 Markov、历史与页面候选](followup_runtime.md) 已有适配和回放，无真实制品时明确 not_ready/unknown。尚无真实 18 类、鸿蒙服务或页面收益验收。
+[统一启动器与桌面 smoke](desktop_smoke.md) 自动构建、自检和生成新目录/报告。[批采与入库](batch_runner.md) 已提供外部 18 类自动化的编排、预检门禁、断点恢复和质量报告；默认关正式采集，完整预检通过后开启。内置 UI 原语仍只有输入、保存、加粗，其余 15 类须复用慧京已有脚本或继续适配，尚无桌面验收。[版本化 Markov、历史与页面候选](followup_runtime.md) 已有适配和回放，无真实制品时明确 not_ready/unknown。尚无真实 18 类、鸿蒙服务或页面收益验收。
 
 ## 构建和预检
 
@@ -97,6 +97,6 @@ Linux 上额外生成 `build/linux/collector/linux/linux_vma_collect`。macOS �
 | 欣彤 | [其他反推方法与横向评估](tasks/xintong.md) |
 | 慧京 | [数据集 smoke、正式采集与交付](tasks/huijing.md) |
 
-[接口约定](integration_contract.md)、[数据集要求](dataset_requirements.md)、[环境约束](environment.md)、[验证记录](validation.md)。任务已形成仓库文档，尚未发送人员通知或登记认领。
+[接口约定](integration_contract.md)、[数据集要求](dataset_requirements.md)、[环境约束](environment.md)、[验证记录](validation.md)。用户已将数据集要求转交慧京；尚未收到执行反馈或数据，Codex 未发送额外人员通知。
 
 Linux 与鸿蒙的文件路径、应用实现、页大小和窗口条件可能不同；已有模型在 Linux 上的有效性需要独立验证。此次复用算法和模型仅证明计算与接口可接续，不证明 Linux/WPS 实时准确率或内存管理收益。

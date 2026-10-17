@@ -8,6 +8,7 @@ import zipfile
 from collector.linux.wps_automation import _docx_text, load_config, operation_readiness
 from scripts.linux_desktop import make_plan
 from scripts.linux_run import run
+from tests.test_linux_batch import config as batch_config
 
 
 class DesktopSmokeContractTests(unittest.TestCase):
@@ -45,6 +46,26 @@ class DesktopSmokeContractTests(unittest.TestCase):
 
 
 class UnifiedLauncherTests(unittest.TestCase):
+    def test_batch_mode_builds_and_checks_before_capture_and_reports_gate_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); external=root/"batch.json"
+            external.write_text(json.dumps(batch_config()))
+            config={"schema_version":"linux.launcher.v1","mode":"batch","output_root":str(root/"runs"),"batch_config":str(external)}
+            class Result: returncode=0
+            with patch("scripts.linux_run.platform.system",return_value="Linux"), \
+                    patch("scripts.linux_run.shutil.which",return_value="/tool"), \
+                    patch("scripts.linux_run.os.sysconf",return_value=4096), \
+                    patch("scripts.linux_run.subprocess.run",return_value=Result()) as commands, \
+                    patch("collector.linux.batch.run_batch",return_value={"status":"failed","formal_collection_enabled":False,
+                          "validation_scope":"fixture_contract_test","valid_windows":{"preflight":4}}) as batch:
+                report=run(config)
+                self.assertEqual(report["status"],"failed")
+                self.assertFalse(report["formal_collection_enabled"])
+                self.assertEqual(len(commands.call_args_list),5)
+                self.assertEqual(batch.call_args.args[0]["root_pid"],321)
+                self.assertEqual(batch.call_args.args[0]["build_dir"],str(Path(report["output"])/"build"))
+                self.assertEqual(report["valid_windows"],{"preflight":4})
+
     def test_build_selftest_unique_reports_and_failure_never_claims_pass(self):
         with tempfile.TemporaryDirectory() as directory:
             config = {"schema_version": "linux.launcher.v1", "mode": "selftest", "output_root": directory}

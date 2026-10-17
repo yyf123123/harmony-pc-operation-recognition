@@ -54,10 +54,13 @@ def run_command(argv: list[str], timeout: float, name: str, *, output: bool = Fa
 
 
 def capture_sample(*, plan: dict, backend: LinuxProcfs, output: Path, session_id: str,
-                   trial_id: str, app_version: str, device_id: str) -> dict:
+                   trial_id: str, app_version: str, device_id: str,
+                   collection_stage: str = "smoke", capture_context: dict | None = None) -> dict:
     validate_plan(plan)
     if not all((session_id, trial_id, app_version, device_id)):
         raise ValueError("session, trial, application version and anonymous device ID are required")
+    if collection_stage not in {"smoke", "preflight", "formal"}:
+        raise ValueError("unsupported collection stage")
     operation = WpsAdapter().catalog.get(plan["operation_id"])
     catalog = WpsAdapter().catalog
     label = str(operation.action_spec["legacy_label"])
@@ -86,8 +89,14 @@ def capture_sample(*, plan: dict, backend: LinuxProcfs, output: Path, session_id
         "feature_schema": "wps.vma.feature.v1", "source": getattr(backend, "source", "linux-procfs"),
         "is_mock": getattr(backend, "is_mock", False), "app_version_source": "user-provided",
         "operation_id": operation.operation_id, "operation_label": label, "label_id": label_id,
-        "label_schema": catalog.schema_version, "collection_stage": "smoke",
+        "label_schema": catalog.schema_version, "collection_stage": collection_stage,
+        "capture_context": dict(capture_context or {}),
     }
+    root_pid = getattr(backend, "root_pid", None)
+    if root_pid is not None:
+        root = next(item for item in backend.identities if item.pid == root_pid)
+        metadata.update(root_pid=root_pid, app_instance_id=f"wps:{root.pid}:{root.start_ticks}",
+                        process_coverage="explicit_authorized_visible_process_tree_at_boundaries")
     save_json(output / "metadata/session.json", metadata)
 
     def focus() -> dict:

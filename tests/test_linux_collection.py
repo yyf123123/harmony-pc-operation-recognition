@@ -11,7 +11,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from collector.linux.procfs import CaptureError, ProcessIdentity, LinuxProcfs, identity, parse_compact
+from collector.linux.procfs import CaptureError, ProcessIdentity, LinuxProcfs, identity, parse_compact, descendant_pids
 from collector.linux.session import capture_sample, validate_plan
 from collector.runtime.trial_state import TrialState
 from scripts.linux import export_sample
@@ -99,6 +99,18 @@ class LinuxCaptureTests(unittest.TestCase):
         with self.assertRaises(FileExistsError):
             export_sample(sample, self.root / "export")
 
+    def test_batch_root_instance_and_stage_are_metadata_only(self):
+        self.backend.root_pid=321
+        with patch("collector.linux.session.run_command",side_effect=self.command), patch("collector.linux.session.time.sleep"):
+            sample=capture_sample(plan=self.plan,backend=self.backend,output=self.root/"batch-sample",
+                session_id="s",trial_id="t",app_version="fixture",device_id="fixture",
+                collection_stage="preflight",capture_context={"unit_id":"synthetic-unit"})
+        self.assertEqual(sample["app_instance_id"],"wps:321:987")
+        self.assertEqual(sample["collection_stage"],"preflight")
+        export_sample(sample,self.root/"batch-export")
+        with (self.root/"batch-export/dataset_manifest.csv").open() as handle:
+            self.assertEqual(next(csv.DictReader(handle))["collection_stage"],"preflight")
+
     def test_verification_failure_is_retained_without_a_success_sample(self):
         original = self.command
         def fail(argv, timeout, name, **kwargs):
@@ -164,6 +176,16 @@ class LinuxCaptureTests(unittest.TestCase):
 
 
 class ProcfsTests(unittest.TestCase):
+    def test_visible_tree_detects_new_child_and_ignores_unrelated_process(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            for pid,parent in ((100,1),(101,100),(102,101),(200,1)):
+                (root/str(pid)).mkdir()
+                (root/str(pid)/"stat").write_text(f"{pid} (name with ) bracket) S {parent} 0\n")
+            self.assertEqual(descendant_pids(100,root),{100,101,102})
+            (root/"103").mkdir(); (root/"103/stat").write_text("103 (new child) S 100 0\n")
+            self.assertEqual(descendant_pids(100,root),{100,101,102,103})
+
     def test_stat_identity_handles_spaces_and_parentheses(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

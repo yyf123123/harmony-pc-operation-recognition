@@ -52,7 +52,7 @@ def export_sample(sample: dict, output: Path) -> None:
         if filename == "dataset_manifest.csv":
             row.update({"feature_schema_version": sample["feature_schema"], "source": sample["source"],
                         "is_mock": str(bool(sample["is_mock"])).lower(), "quality_status": "VALID",
-                        "status": "success", "collection_stage": "smoke",
+                        "status": "success", "collection_stage": sample.get("collection_stage", "smoke"),
                         "capture_profile": json.dumps({**sample["capture_profile"],
                             "page_size_bytes": sample["page_size_bytes"], "app_version": sample["app_version"]}, sort_keys=True)})
         with (output / filename).open("x", encoding="utf-8", newline="") as handle:

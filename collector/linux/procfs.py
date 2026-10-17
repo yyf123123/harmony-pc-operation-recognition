@@ -130,3 +130,51 @@ class LinuxProcfs:
         destination.write_text(result.stdout, encoding="utf-8")
         values["report_paths"] = [str(destination)]
         return values
+
+
+def descendant_pids(root_pid: int, proc_root: Path = Path("/proc")) -> set[int]:
+    """Visible process tree for collection coverage, never a process selector."""
+    parents = {}
+    try:
+        entries = list(proc_root.iterdir())
+    except OSError:
+        raise CaptureError("cannot inspect process coverage") from None
+    for entry in entries:
+        if not entry.name.isdecimal():
+            continue
+        try:
+            text = (entry/"stat").read_text()
+            prefix, separator, tail = text.rpartition(") ")
+            fields = tail.split()
+            if not separator or int(prefix.split("(",1)[0]) != int(entry.name) or len(fields) < 2:
+                continue
+            parents[int(entry.name)] = int(fields[1])
+        except (OSError, ValueError):
+            # Unrelated processes may disappear or be hidden. Explicit targets
+            # are independently checked before/after this tree snapshot.
+            continue
+    children = {root_pid}
+    while True:
+        expanded = children | {pid for pid, parent in parents.items() if parent in children}
+        if expanded == children:
+            return children
+        children = expanded
+
+
+class BatchProcfs(LinuxProcfs):
+    """Freeze authorized coverage and root start identity for a batch.
+
+    Never automatically add a new child to clear_refs. Coverage changes pause
+    collection. This is boundary evidence, not a claim about unobserved times.
+    """
+    def __init__(self, pids, collector, *, root_pid):
+        if type(root_pid) is not int or root_pid not in pids:
+            raise CaptureError("explicit root_pid must be a selected PID")
+        self.root_pid = root_pid
+        super().__init__(pids, collector)
+
+    def check(self):
+        super().check()
+        if descendant_pids(self.root_pid) != self.pids:
+            raise CaptureError("process child coverage changed; update explicit PIDs in a new batch")
+        super().check()
