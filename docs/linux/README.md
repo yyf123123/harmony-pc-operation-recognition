@@ -4,7 +4,7 @@
 
 当前优先使用共用 Native 核心：`opsctl doctor/selftest/replay/run/serve` 完成诊断、原始回放与受控窗口；serve 或宿主持久对象实际维护识别历史。静态库与 C ABI 供既有服务链接，内网包见[操作卡](../handoff/OPERATOR_CARD.md)。
 
-[统一启动器与桌面 smoke](desktop_smoke.md) 自动构建、自检和生成新目录/报告。[批采与入库](batch_runner.md) 已提供外部 18 类自动化的编排、预检门禁、断点恢复和质量报告；默认关正式采集，完整预检通过后开启。内置 UI 原语仍只有输入、保存、加粗，其余 15 类须复用慧京已有脚本或继续适配，尚无桌面验收。[版本化 Markov、历史与页面候选](followup_runtime.md) 已有适配和回放，无真实制品时明确 not_ready/unknown。尚无真实 18 类、鸿蒙服务或页面收益验收。
+[统一启动器与桌面 smoke](desktop_smoke.md) 自动构建、自检和生成新目录/报告。[批采与入库](batch_runner.md) 提供外部 18 类自动化的编排、门禁、恢复和质量报告。已收到慧京五文档 190 样本＋36 预检的小试，并通过[离线接收核验](intake_20261021.md)；现有冻结模型在 Linux 小试不可直接用，完整 1500 按包内说明保持暂停。内置 UI 原语仍只有三项，外部自动化与语义实现尚待独立复现。[Markov、历史与页面候选](followup_runtime.md) 无真实制品时保持 not_ready/unknown；在线、鸿蒙服务或页级收益未验收。
 
 ## 构建和预检
 

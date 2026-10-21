@@ -59,3 +59,9 @@ python3 -m unittest tests.test_linux_batch tests.test_linux_batch_export \
 全配额 1536 窗口、整段重试、断点恢复、坏 journal/证据拒绝、磁盘门禁、互斥及 1500 正式窗口的分组导出使用**明确标记的合成夹具**验证。真实 Native 程序参与特征/预测集成核对，观察输入仍是夹具；这些测试不产生正式数据、真实准确率或真实用户序列。
 
 尚未验证：慧京实际 18 类动作与语义检查、真实焦点与进程覆盖、模板/流程合法性、真实 WPS 数据与模型在 Linux 的识别效果。配置结构合法或外部验证器返回成功不等于独立认证 UI；下一步接实际脚本/数据验收。内网宿主 API/ABI、权限、服务注册及设备运行仍属于 M3，未在本轮替代验证；真实下一步模型、页映射与提前量仍待 M5。
+
+## 2026-10-21：首批真实 WPS 小试 intake
+
+已收到并离线核验 190 个选定样本＋36 预检，详见[接收与复核报告](intake_20261021.md)。904 段原始 TSV 到冻结特征链通过，Python/Native 向量差 0；原始模型预测重放一致，独立 5/90、连续 0/100，不能直接迁移为可用 Linux 模型。未重训或覆盖原模型，生产方 72.2% 的 Linux 诊断基线尚未独立复现。真实数据留在仓库外，不在 CI 中运行或上传。
+
+本机 `NATIVE_BUILD_DIR=build/native .venv/bin/python -m unittest tests.test_linux_intake tests.test_linux_collection tests.test_linux_batch_export tests.test_linux_history -v`：21 项中 20 通过、1 项依赖 Linux 的测试跳过；实际 226 样本 intake 另外通过。模型数学和 C/C++ 核心没有改动。
