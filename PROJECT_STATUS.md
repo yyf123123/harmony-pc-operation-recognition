@@ -31,7 +31,7 @@ Codex 另实现统一 Linux 启动器、三项安全 WPS 原语、版本化 Mark
 | --- | --- |
 | 源码与私有仓库 | 已克隆；分支已创建；最终实现提交以 Git 历史为准 |
 | macOS 离线 | 本轮 61/70 Python 通过，9 项 Linux 跳过；`b28f6b0` portable CI 构建、自检及四项 CTest 通过；既有内网包回放证据保留 |
-| Linux CI | `b28f6b0` 两组各 70 项 Python、4 项 CTest、模型负例/自检通过；Actions run `39003633908`，另 macOS/Windows 两组通过 |
+| Linux CI | 新 intake 源码 `6fc0f17` 四组均通过，Actions run `39567354996`；含 Linux Python 3.10/3.12 与 Mac/Windows 原生构建自检，真实 ZIP 不进 CI |
 | server-lbz | `b28f6b0` 原生构建、自检、四项 CTest 和相关 48 项全部通过；实际 BatchProcfs 自有进程采样/新增子进程拒绝通过；未接桌面、未安装系统依赖 |
 | OpenHarmony ARM64 | SDK 6.1.0.105 / API 23 交叉构建通过，动态需 libc++_shared.so / libc.so；未设备运行 |
 | 服务构建接线 | 公开 platform_bridge.h 可直接调用薄启动桥；两静态库默认 PIC，Mac/Linux 共享服务链接 smoke 通过 |

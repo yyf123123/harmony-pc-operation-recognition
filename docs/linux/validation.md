@@ -65,3 +65,5 @@ python3 -m unittest tests.test_linux_batch tests.test_linux_batch_export \
 已收到并离线核验 190 个选定样本＋36 预检，详见[接收与复核报告](intake_20261021.md)。904 段原始 TSV 到冻结特征链通过，Python/Native 向量差 0；原始模型预测重放一致，独立 5/90、连续 0/100，不能直接迁移为可用 Linux 模型。未重训或覆盖原模型，生产方 72.2% 的 Linux 诊断基线尚未独立复现。真实数据留在仓库外，不在 CI 中运行或上传。
 
 本机 `NATIVE_BUILD_DIR=build/native .venv/bin/python -m unittest tests.test_linux_intake tests.test_linux_collection tests.test_linux_batch_export tests.test_linux_history -v`：21 项中 20 通过、1 项依赖 Linux 的测试跳过；实际 226 样本 intake 另外通过。模型数学和 C/C++ 核心没有改动。
+
+源码 `6fc0f177d18f71163ca808ebc9abf6a7871b9600` 的 [Actions run 39567354996](https://github.com/yyf123123/harmony-pc-operation-recognition/actions/runs/39567354996) 已核验四组成功：Linux Python 3.10/3.12、macOS/Windows。真实包没有上传 CI；本轮没有在服务器或内网设备上新增测试。
