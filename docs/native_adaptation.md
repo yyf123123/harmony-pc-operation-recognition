@@ -2,6 +2,8 @@
 
 `native/` 可链接到现有鸿蒙 Native 用户态系统服务。原 `NativePipeline` 保持兼容；新 `ServiceRuntime` 已实现严格采集、受控窗口、原始 VMA 特征、推理、取消、错误事件、应用实例和有界历史。`opsctl` 与宿主库使用同一核心。
 
+2026-10-28 起优先使用[简化三调用入口](handoff/SIMPLE_DEPLOY.md)：宿主只链接 `harmony_operation_host`，调用 `hop_embedded_start/trigger/stop`，自动模型/合成回放、工作线程、唯一输出目录和本地中文诊断。现场只填一个平台桥接文件并沿用原服务构建发布，**不要求外传任何内网材料**。以下低层 C ABI 保留供已有宿主使用，不是必须手动执行的部署步骤。
+
 ## 已实现的计算边界
 
 - `CentroidModel::Load` 依应用 ID 与 schema 选择冻结的中心顺序，在运行时校验 `model.json` 和 `centers.csv` 的 SHA-256，并检查 CSV 的 2048 列、中心 ID、标签顺序和有限数值。发布前另用 `python -m scripts.audit_models` 审计元数据字段。

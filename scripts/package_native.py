@@ -40,11 +40,15 @@ def main() -> int:
     shutil.copy2(repo / "collector/CMakeLists.txt", source / "collector/CMakeLists.txt")
     shutil.copytree(repo / "docs", source / "docs")
     shutil.copy2(repo / "PROJECT_STATUS.md", source / "PROJECT_STATUS.md")
-    shutil.copytree(repo / "models", output / "models")
+    # Harmony handoff keeps the three frozen models. Linux pilot parameters
+    # belong to the separate desktop package and are never promoted here.
+    for app in ("wps", "bilibili", "huawei_browser"):
+        shutil.copytree(repo / "models" / app, output / "models" / app)
     shutil.copytree(repo / "native/fixtures", output / "fixtures")
     shutil.copytree(repo / "packaging/native", output / "operator")
     shutil.copytree(repo / "docs/handoff", output / "docs")
-    shutil.copy2(repo / "docs/linux/environment.md", output / "docs/ENVIRONMENT.md")
+    # The inner-network operator cannot send closed material out. Ship its
+    # dedicated environment rules, rather than headless Linux server rules.
     shutil.copy2(repo / "native/examples/platform_bridge.cpp", output / "operator/platform_bridge.cpp")
     shutil.copytree(repo / "native/include", output / "include")
     shutil.copytree(repo / "collector/include", output / "include", dirs_exist_ok=True)
@@ -57,16 +61,18 @@ def main() -> int:
         destination = output / "targets" / target_name
         copied = []
         candidates = [build / "native/opsctl", build / "native/opsctl.exe",
+                      build / "native/libharmony_operation_host.a", build / "native/harmony_operation_host.lib",
                       build / "native/libharmony_operation_recognition.a", build / "native/harmony_operation_recognition.lib",
                       build / "collector/libharmony_vma_collector.a", build / "collector/harmony_vma_collector.lib"]
         candidates += [build / "native/Release/opsctl.exe", build / "native/Release/harmony_operation_recognition.lib",
+                       build / "native/Release/harmony_operation_host.lib",
                        build / "collector/Release/harmony_vma_collector.lib"]
         for path in candidates:
             if path.is_file():
                 destination.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(path, destination / path.name)
                 copied.append(path.name)
-        if len(copied) < 3:
+        if len(copied) < 4:
             raise RuntimeError(f"missing executable/static libraries in {build}")
         cache = build / "CMakeCache.txt"
         facts = [line for line in cache.read_text().splitlines() if any(line.startswith(key) for key in
@@ -86,9 +92,14 @@ def main() -> int:
                 dependencies = proc.stdout if proc.returncode == 0 else dependencies
             binaries.append({"file": path.name, "format": info.replace(str(destination), "targets/" + target_name), "dependencies": dependencies.replace(str(destination), "targets/" + target_name)})
         builds.append({"target": target_name, "cmake": facts, "compiler": compiler, "binaries": binaries})
-    commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, text=True, capture_output=True).stdout.strip()
-    dirty = bool(subprocess.run(["git", "status", "--porcelain"], cwd=repo, check=True, text=True, capture_output=True).stdout)
-    (output / "BUILD_INFO.json").write_text(json.dumps({"schema": "harmony.ops.handoff.v1", "source_commit": commit, "source_dirty": dirty,
+    snapshot_path = repo / "SOURCE_SNAPSHOT.json"
+    snapshot = json.loads(snapshot_path.read_text()) if snapshot_path.is_file() else None
+    if snapshot is not None:
+        commit, dirty = None, False
+    else:
+        commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, text=True, capture_output=True).stdout.strip()
+        dirty = bool(subprocess.run(["git", "status", "--porcelain"], cwd=repo, check=True, text=True, capture_output=True).stdout)
+    (output / "BUILD_INFO.json").write_text(json.dumps({"schema": "harmony.ops.handoff.v1", "source_commit": commit, "source_dirty": dirty, "source_snapshot": snapshot,
         "validated_code_commit": args.validated_code_commit or commit,
         "packaging_host": platform.system() + "-" + platform.machine(), "targets": builds,
         "runtime": "C++17 standard library, C/POSIX runtime, threads; exact ABI must be checked on target",

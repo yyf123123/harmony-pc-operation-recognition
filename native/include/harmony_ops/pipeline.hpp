@@ -64,8 +64,8 @@ public:
 
 class NativePipeline {
 public:
-    explicit NativePipeline(std::filesystem::path models_root)
-        : models_root_(std::move(models_root)) {}
+    explicit NativePipeline(std::filesystem::path models_root, std::string profile = "frozen")
+        : models_root_(std::move(models_root)), model_profile_(std::move(profile)) {}
     // Processes one independent window. No smoothing or switch hysteresis.
     // Returns false when the scheduler has no next window.
     bool RunOne(PermissionGate& permission, WindowScheduler& schedule,
@@ -74,6 +74,7 @@ public:
 
 private:
     std::filesystem::path models_root_;
+    std::string model_profile_;
     std::map<std::string, CentroidModel> models_;
 };
 

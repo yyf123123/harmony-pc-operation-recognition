@@ -128,6 +128,31 @@ std::set<std::int32_t> Descendants(std::int32_t root) {
     }
     return result;
 }
+std::string AddedProcessMetadata(const std::vector<std::int32_t>& pids) {
+    // Diagnosis only. Never sample/clear an unapproved PID, read cmdline,
+    // collect document text, or treat an exited child as approved coverage.
+    std::string out="[";
+    for (auto pid:pids) {
+        if(out.size()>1)out+=',';
+        out+="{\"pid\":"+std::to_string(pid);
+        try {
+            std::ifstream input("/proc/"+std::to_string(pid)+"/stat");std::string text;std::getline(input,text);
+            const auto begin=text.find('('),end=text.rfind(") ");
+            if(!input || begin==std::string::npos || end==std::string::npos || end<=begin)throw std::runtime_error("stat unavailable");
+            std::istringstream fields(text.substr(end+2));std::string token,state,parent,ticks;
+            for(unsigned field=3;field<=22;++field){
+                if(!(fields>>token))throw std::runtime_error("stat incomplete");
+                if(field==3)state=token;else if(field==4)parent=token;else if(field==22)ticks=token;
+            }
+            if(parent.empty() || ticks.empty() || parent.find_first_not_of("0123456789")!=std::string::npos || ticks.find_first_not_of("0123456789")!=std::string::npos)
+                throw std::runtime_error("stat invalid");
+            out+=",\"metadata_status\":\"observed\",\"comm\":"+JsonString(text.substr(begin+1,end-begin-1))+
+                ",\"state\":"+JsonString(state)+",\"ppid\":"+parent+",\"start_ticks\":"+ticks;
+        } catch(...) {out+=",\"metadata_status\":\"unavailable_or_exited\"";}
+        out+='}';
+    }
+    return out+"]";
+}
 #endif
 class DesktopBridge final : public PlatformBridge {
 public:
@@ -157,8 +182,17 @@ public:
             for (unsigned depth=0; ancestor != selected.root_pid && ancestor > 1 && depth < 64; ++depth) ancestor = ParentPid(ancestor);
             if (ancestor != selected.root_pid) throw RuntimeError(RuntimeCode::ProcessChanged, "selected PID is not a child of root_pid");
         }
-        if (Descendants(selected.root_pid) != std::set<std::int32_t>(selected.covered_pids.begin(),selected.covered_pids.end()))
-            throw RuntimeError(RuntimeCode::ProcessChanged, "application child coverage changed; update covered_pids and begin a complete new baseline");
+        const auto actual=Descendants(selected.root_pid);
+        const std::set<std::int32_t> expected(selected.covered_pids.begin(),selected.covered_pids.end());
+        if (actual != expected) {
+            const auto list=[](const auto& ids) { std::string text="[";for(auto id:ids){if(text.size()>1)text+=',';text+=std::to_string(id);}return text+"]"; };
+            std::vector<std::int32_t> added,removed;
+            std::set_difference(actual.begin(),actual.end(),expected.begin(),expected.end(),std::back_inserter(added));
+            std::set_difference(expected.begin(),expected.end(),actual.begin(),actual.end(),std::back_inserter(removed));
+            throw RuntimeError(RuntimeCode::ProcessChanged, "application child coverage changed; expected="+list(expected)+
+                "; actual="+list(actual)+"; added="+list(added)+"; removed="+list(removed)+"; monotonic_ns="+std::to_string(MonotonicNowNs())+
+                "; update covered_pids and begin a complete new baseline; added_stat="+AddedProcessMetadata(added));
+        }
         auto evidence = selected;
         evidence.window_id = window;
         evidence.evidence_source = "x11.xdotool.active-window-pid";
@@ -211,7 +245,7 @@ int RunPlatformControlled(const std::filesystem::path& file, const std::string& 
     if (!input) throw std::runtime_error("cannot open device configuration");
     std::map<std::string,std::string> config;
     std::string line;
-    const std::set<std::string> allowed{"app_id","models_root","session_id","root_pid","covered_pids","output_jsonl","baseline_ms","baseline_count","action_ms","post_ms","max_sample_ms","focus_poll_ms","history_limit","dedup_limit"};
+    const std::set<std::string> allowed{"app_id","models_root","model_profile","session_id","root_pid","covered_pids","output_jsonl","baseline_ms","baseline_count","action_ms","post_ms","max_sample_ms","focus_poll_ms","history_limit","dedup_limit"};
     while (std::getline(input,line)) {
         line = Trim(line);
         if (line.empty() || line[0] == '#') continue;
@@ -225,6 +259,7 @@ int RunPlatformControlled(const std::filesystem::path& file, const std::string& 
     RuntimeConfig runtime;
     runtime.app_id = required("app_id");
     runtime.models_root = file.parent_path() / required("models_root");
+    if (config.count("model_profile")) runtime.model_profile=config.at("model_profile");
     runtime.session_id = required("session_id");
     runtime.output_jsonl = output.empty() ? file.parent_path() / required("output_jsonl") : output;
     if (fs::exists(runtime.output_jsonl)) throw std::invalid_argument("run output must be a new JSONL file");

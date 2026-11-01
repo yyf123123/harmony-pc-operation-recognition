@@ -96,7 +96,7 @@ struct hop_handle {
     CallbackBridge bridge;
     std::unique_ptr<ServiceRuntime> runtime;
     std::filesystem::path models_root;
-    std::string app_id;
+    std::string app_id, model_profile="frozen";
 };
 
 extern "C" {
@@ -111,6 +111,9 @@ void hop_default_callbacks(hop_callbacks* out) {
     *out={}; out->abi_version=HOP_ABI_VERSION; out->struct_size=sizeof(*out);
 }
 hop_status hop_create(const hop_config* config,const hop_callbacks* callbacks,hop_handle** out,hop_error* error) {
+    return hop_create_profile(config,callbacks,"frozen",out,error);
+}
+hop_status hop_create_profile(const hop_config* config,const hop_callbacks* callbacks,const char* profile,hop_handle** out,hop_error* error) {
     if (out) *out=nullptr;
     return Protect(error,[&] {
         if (!out || !config || !callbacks || config->abi_version!=HOP_ABI_VERSION || callbacks->abi_version!=HOP_ABI_VERSION ||
@@ -118,6 +121,9 @@ hop_status hop_create(const hop_config* config,const hop_callbacks* callbacks,ho
             throw std::invalid_argument("unsupported C ABI version or structure size");
         RuntimeConfig runtime;
         runtime.models_root=String(config->models_root); runtime.app_id=String(config->app_id);
+        runtime.model_profile=String(profile);
+        if (runtime.model_profile.empty()) throw std::invalid_argument("explicit model profile is required");
+        if (runtime.model_profile!="frozen") (void)SpecForProfile(runtime.app_id,runtime.model_profile);
         runtime.session_id=String(config->session_id); runtime.output_jsonl=String(config->output_jsonl);
         runtime.baseline_ms=config->baseline_ms; runtime.action_ms=config->action_ms; runtime.post_ms=config->post_ms;
         runtime.max_sample_ms=config->max_sample_ms; runtime.focus_poll_ms=config->focus_poll_ms;
@@ -125,6 +131,7 @@ hop_status hop_create(const hop_config* config,const hop_callbacks* callbacks,ho
         auto handle=std::make_unique<hop_handle>();
         handle->bridge.callbacks=*callbacks;
         handle->models_root=runtime.models_root; handle->app_id=runtime.app_id;
+        handle->model_profile=runtime.model_profile;
         handle->runtime=std::make_unique<ServiceRuntime>(std::move(runtime),handle->bridge);
         *out=handle.release();
     });
@@ -160,11 +167,12 @@ hop_status hop_replay(hop_handle* handle,const char* manifest,char* buffer,size_
         try { replay=LoadRawReplay(manifest,handle->app_id); }
         catch (const std::exception& failure) { throw RuntimeError(RuntimeCode::CollectionFailed,failure.what()); }
         Prediction prediction;
-        try { prediction=CentroidModel::Load(handle->models_root,handle->app_id,SpecFor(handle->app_id).feature_schema).Predict(replay.vector); }
+        try { prediction=CentroidModel::Load(handle->models_root,handle->app_id,SpecFor(handle->app_id).feature_schema,handle->model_profile).Predict(replay.vector); }
         catch (const std::exception& failure) { throw RuntimeError(RuntimeCode::ModelError,failure.what()); }
         std::ostringstream json;
         json << std::setprecision(17) << "{\"schema\":\"harmony.ops.replay.v1\",\"status\":\"ok\",\"source\":\"offline_replay\",\"app_id\":"
             << JsonString(handle->app_id) << ",\"feature_schema\":" << JsonString(SpecFor(handle->app_id).feature_schema)
+            << ",\"model_profile\":" << JsonString(handle->model_profile)
             << ",\"operation_label\":" << JsonString(prediction.operation_label) << ",\"cosine_similarity\":" << prediction.cosine_similarity
             << ",\"center_id\":" << prediction.center_id << ",\"page_size\":" << replay.page_size << ",\"accuracy_evaluated\":false}";
         Copy(json.str(),buffer,capacity,required);

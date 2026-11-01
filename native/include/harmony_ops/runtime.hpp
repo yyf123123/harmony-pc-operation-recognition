@@ -24,6 +24,8 @@ FeatureMap SemanticFeatures(const hc_snapshot&, const std::string& schema);
 FeatureMap BaselineMedian(const std::vector<FeatureMap>&);
 FeatureMap ExcessPages(const std::vector<FeatureMap>&, const FeatureMap& action,
                        const FeatureMap& post);
+FeatureMap ExcessFromMedian(const FeatureMap& median, const FeatureMap& action,
+                           const FeatureMap& post);
 std::vector<double> BuildWindowVector(const std::string& schema,
     const std::vector<FeatureMap>&, const FeatureMap& action, const FeatureMap& post);
 std::string JsonString(const std::string&);
@@ -48,7 +50,7 @@ struct FocusEvidence {
 };
 struct RuntimeConfig {
     std::filesystem::path models_root;
-    std::string app_id = "wps", session_id;
+    std::string app_id = "wps", session_id, model_profile = "frozen";
     std::filesystem::path output_jsonl;
     std::uint32_t baseline_ms=5000, action_ms=15000, post_ms=5000;
     std::size_t baseline_count=2, history_limit=64, dedup_limit=1024;
@@ -57,7 +59,9 @@ struct RuntimeConfig {
 struct RecognizedEvent {
     std::string event_id, window_id, session_id, app_id, app_instance_id;
     std::string focus_window_id, evidence_source, coverage_id;
+    std::string model_profile = "frozen";
     std::uint64_t start_ns=0, end_ns=0;
+    std::uint64_t initial_evidence_ns=0, feature_ns=0, inference_ns=0, final_validation_ns=0;
     Prediction prediction;
     std::vector<hc_process_identity> processes;
     std::uint64_t page_size=0;
@@ -81,6 +85,8 @@ struct RuntimeHealth {
     std::uint64_t completed_windows=0, failed_windows=0;
     RuntimeCode last_code=RuntimeCode::Ok;
     std::string last_error, active_window;
+    std::uint64_t model_load_ns=0, last_output_ns=0, last_history_ns=0, last_total_ns=0;
+    bool last_success_timing_available=false;
 };
 std::string HealthJson(const RuntimeHealth&);
 

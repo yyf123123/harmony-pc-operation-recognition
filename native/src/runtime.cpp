@@ -129,6 +129,10 @@ FeatureMap BaselineMedian(const std::vector<FeatureMap>& baselines) {
 }
 FeatureMap ExcessPages(const std::vector<FeatureMap>& baselines,const FeatureMap& action,const FeatureMap& post) {
     const auto median=BaselineMedian(baselines);
+    return ExcessFromMedian(median,action,post);
+}
+FeatureMap ExcessFromMedian(const FeatureMap& median,const FeatureMap& action,const FeatureMap& post) {
+    ValidateFeatureMap(median);
     ValidateFeatureMap(action); ValidateFeatureMap(post);
     auto keys=action; keys.insert(post.begin(),post.end());
     FeatureMap excess;
@@ -172,6 +176,12 @@ std::string EventJson(const RecognizedEvent& event) {
         << ",\"evidence_source\":" << JsonString(event.evidence_source) << ",\"clock\":\"monotonic_ns\",\"start_ns\":" << event.start_ns
         << ",\"end_ns\":" << event.end_ns << ",\"operation_label\":" << JsonString(event.prediction.operation_label)
         << ",\"cosine_similarity\":" << event.prediction.cosine_similarity << ",\"center_id\":" << event.prediction.center_id
+        << ",\"model_profile\":" << JsonString(event.model_profile)
+        << ",\"timing_ns\":{\"initial_evidence\":" << event.initial_evidence_ns
+        << ",\"feature\":" << event.feature_ns << ",\"inference\":" << event.inference_ns
+        << ",\"final_validation\":" << event.final_validation_ns
+        << ",\"trigger_to_result_ready\":" << (event.end_ns-event.start_ns)
+        << ",\"output_and_history\":null}"
         << ",\"feature_schema\":" << JsonString(SpecFor(event.app_id).feature_schema) << ",\"processes\":[";
     bool first=true;
     for (const auto& process:event.processes) {
@@ -183,6 +193,7 @@ std::string EventJson(const RecognizedEvent& event) {
         << ",\"capture_profile\":{\"schema\":\"harmony.ops.controlled-window.v1\",\"baseline_ms\":" << event.baseline_ms
         << ",\"baseline_count\":" << event.baseline_count << ",\"action_ms\":" << event.action_ms
         << ",\"post_ms\":" << event.post_ms << ",\"focus_poll_ms\":" << event.focus_poll_ms
+        << ",\"window_clock\":" << JsonString(event.model_profile=="linux-wps-writer-pilot-20261023-v1"?"before_clear_refs":"after_clear_refs")
         << ",\"focus_validation\":\"polled\",\"autonomous_segmentation\":false},\"phases\":[";
     first=true;
     for (const auto& phase:event.phases) {
@@ -208,7 +219,13 @@ std::string HealthJson(const RuntimeHealth& health) {
     out << "{\"schema\":\"harmony.ops.health.v1\",\"started\":" << (health.started?"true":"false")
         << ",\"running\":" << (health.running?"true":"false") << ",\"completed_windows\":" << health.completed_windows
         << ",\"failed_windows\":" << health.failed_windows << ",\"last_code\":" << JsonString(RuntimeCodeName(health.last_code))
-        << ",\"last_error\":" << JsonString(health.last_error) << ",\"active_window\":" << JsonString(health.active_window) << '}';
+        << ",\"last_error\":" << JsonString(health.last_error) << ",\"active_window\":" << JsonString(health.active_window)
+        << ",\"model_load_ns\":" << health.model_load_ns << ",\"last_success_timing_ns\":";
+    if (health.last_success_timing_available)
+        out << "{\"output\":" << health.last_output_ns << ",\"history\":" << health.last_history_ns
+            << ",\"trigger_to_history_updated\":" << health.last_total_ns << '}';
+    else out << "null";
+    out << '}';
     return out.str();
 }
 hc_process_identity PlatformBridge::Identity(std::int32_t pid) {
@@ -241,13 +258,15 @@ void ServiceRuntime::Start() {
         config_.baseline_count<2 || config_.baseline_count>1024 || !config_.history_limit ||
         config_.dedup_limit<config_.history_limit || !config_.max_sample_ms || !config_.focus_poll_ms || config_.focus_poll_ms>1000)
         throw RuntimeError(RuntimeCode::InvalidArgument,"invalid runtime configuration");
-    try { model_=std::make_unique<CentroidModel>(CentroidModel::Load(config_.models_root,config_.app_id,SpecFor(config_.app_id).feature_schema)); }
+    const auto load_start=MonotonicNowNs();
+    try { model_=std::make_unique<CentroidModel>(CentroidModel::Load(config_.models_root,config_.app_id,SpecFor(config_.app_id).feature_schema,config_.model_profile)); }
     catch (const std::exception& error) {
         health_.last_code=RuntimeCode::ModelError; health_.last_error=error.what();
         throw RuntimeError(RuntimeCode::ModelError,error.what());
     }
     history_.clear(); seen_.clear(); seen_order_.clear(); history_instance_.clear();
-    cancel_=false; health_=RuntimeHealth{}; health_.started=true;
+    const auto load_ns=MonotonicNowNs()-load_start;
+    cancel_=false; health_=RuntimeHealth{}; health_.started=true; health_.model_load_ns=load_ns;
 }
 void ServiceRuntime::RequestStop() noexcept { cancel_=true; condition_.notify_all(); }
 void ServiceRuntime::Stop() {
@@ -268,6 +287,7 @@ RecognizedEvent ServiceRuntime::RunControlled(const std::string& window,const st
         if (window.empty() || event_id.empty()) throw RuntimeError(RuntimeCode::InvalidArgument,"window/event ID must be nonempty");
         if (seen_.count(event_id)) throw RuntimeError(RuntimeCode::DuplicateEvent,"recognized event ID was already published");
         health_.running=true; health_.active_window=window;
+        health_.last_success_timing_available=false;
     }
     const auto finish=[&](RuntimeCode code,const std::string& message) {
         {
@@ -292,6 +312,7 @@ RecognizedEvent ServiceRuntime::RunControlled(const std::string& window,const st
         }
         condition_.notify_all();
     };
+    const auto controlled_start=MonotonicNowNs();
     try {
         const auto cancelled=[&] { if (cancel_) throw RuntimeError(RuntimeCode::Cancelled,"controlled window cancelled"); };
         cancelled();
@@ -301,7 +322,7 @@ RecognizedEvent ServiceRuntime::RunControlled(const std::string& window,const st
         RecognizedEvent event;
         event.event_id=event_id; event.window_id=window; event.session_id=config_.session_id;
         event.app_id=config_.app_id; event.focus_window_id=initial.window_id; event.evidence_source=initial.evidence_source;
-        event.start_ns=MonotonicNowNs();
+        event.start_ns=controlled_start; event.model_profile=config_.model_profile;
         event.baseline_ms=config_.baseline_ms; event.baseline_count=config_.baseline_count;
         event.action_ms=config_.action_ms; event.post_ms=config_.post_ms; event.focus_poll_ms=config_.focus_poll_ms;
         hc_process_identity root{};
@@ -315,6 +336,7 @@ RecognizedEvent ServiceRuntime::RunControlled(const std::string& window,const st
         }
         event.app_instance_id=config_.app_id+":"+std::to_string(root.pid)+":"+std::to_string(root.start_ticks);
         event.coverage_id=Sha256Hex(coverage_material);
+        event.initial_evidence_ns=MonotonicNowNs()-controlled_start;
         const auto validate=[&] {
             cancelled();
             const auto focus=bridge_.Focus();
@@ -338,9 +360,13 @@ RecognizedEvent ServiceRuntime::RunControlled(const std::string& window,const st
                 bridge_.Clear(process); pt.clear_end_ns=MonotonicNowNs();
                 timing.processes.push_back(pt);
             }
-            const auto start=MonotonicNowNs();
-            if (start-clear_start>std::uint64_t(config_.max_sample_ms)*1000000)
+            const auto clear_end=MonotonicNowNs();
+            if (clear_end-clear_start>std::uint64_t(config_.max_sample_ms)*1000000)
                 throw RuntimeError(RuntimeCode::SamplingTimeout,"clear_refs phase exceeded sampling budget");
+            // The received Linux training protocol starts its deadline before
+            // clear_refs (collector/linux/session.py). Keep the old default
+            // clock intact, and align only the explicit Linux candidate.
+            const auto start=config_.model_profile=="linux-wps-writer-pilot-20261023-v1"?clear_start:clear_end;
             const auto deadline=start+std::uint64_t(duration_ms)*1000000;
             timing.start_ns=start; timing.target_end_ns=deadline;
             bridge_.Stage(phase,index,start);
@@ -378,14 +404,22 @@ RecognizedEvent ServiceRuntime::RunControlled(const std::string& window,const st
         for (std::size_t i=0;i<config_.baseline_count;++i) baselines.push_back(capture("baseline",i,config_.baseline_ms));
         const auto action=capture("action",0,config_.action_ms);
         const auto post=capture("post",0,config_.post_ms);
+        const auto feature_start=MonotonicNowNs();
         const auto vector=BuildWindowVector(model_->spec().feature_schema,baselines,action,post);
+        event.feature_ns=MonotonicNowNs()-feature_start;
         double norm=0;
         for (double value:vector) norm+=value*value;
         if (!(norm>0) || !std::isfinite(norm)) throw RuntimeError(RuntimeCode::CollectionFailed,"zero or non-finite window feature");
-        event.prediction=model_->Predict(vector); event.end_ns=MonotonicNowNs();
+        const auto predict_start=MonotonicNowNs();
+        event.prediction=model_->Predict(vector); event.inference_ns=MonotonicNowNs()-predict_start;
+        const auto final_start=MonotonicNowNs();
         validate();
+        event.final_validation_ns=MonotonicNowNs()-final_start; event.end_ns=MonotonicNowNs();
+        const auto output_start=MonotonicNowNs();
         try { if (!bridge_.Publish(EventJson(event))) AppendOutput(config_.output_jsonl,EventJson(event)); }
         catch (const std::exception& error) { throw RuntimeError(RuntimeCode::OutputFailed,error.what()); }
+        const auto output_ns=MonotonicNowNs()-output_start;
+        const auto history_start=MonotonicNowNs();
         {
             std::lock_guard<std::mutex> lock(mutex_);
             if (history_instance_!=event.app_instance_id) { history_.clear(); history_instance_=event.app_instance_id; }
@@ -393,6 +427,8 @@ RecognizedEvent ServiceRuntime::RunControlled(const std::string& window,const st
             while (history_.size()>config_.history_limit) history_.pop_front();
             seen_.insert(event.event_id); seen_order_.push_back(event.event_id);
             while (seen_order_.size()>config_.dedup_limit) { seen_.erase(seen_order_.front()); seen_order_.pop_front(); }
+            health_.last_output_ns=output_ns; health_.last_history_ns=MonotonicNowNs()-history_start;
+            health_.last_total_ns=MonotonicNowNs()-controlled_start; health_.last_success_timing_available=true;
         }
         finish(RuntimeCode::Ok,""); return event;
     } catch (const RuntimeError& error) { finish(error.code(),error.what()); throw; }

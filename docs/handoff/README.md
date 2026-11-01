@@ -2,6 +2,8 @@
 
 `harmony_operation_recognition` 和 `harmony_vma_collector` 是两个链接目标，使用同一个 C++ 运行核心。`NativePipeline` 原入口保留；新增 `ServiceRuntime` 和窄 C ABI 用于完整受控窗口，`opsctl` 使用相同原始特征和模型实现。
 
+2026-10-28 简化接入：优先用 `harmony_operation_host` 单一宿主链接目标，已封装后台线程、启动自检/回放、取消、唯一输出目录和中文本地诊断。现场只填一个桥接文件并在原服务接入 start/trigger/stop；见[两件事操作说明](SIMPLE_DEPLOY.md)。无需外传内网代码或日志。原两个底层库与 opsctl 入口保留。
+
 包结构：`source/` 源码、`include/` 公共头文件、`models/` 冻结模型、`fixtures/` 合成夹具、`targets/架构/` 可执行文件及两个静态库、`operator/` 脚本和桥接、`docs/` 操作说明、`BUILD_INFO.json` 编译与运行库信息、`SHA256SUMS` 全文件清单。静态库仍依赖目标的 C/C++ 运行库，不意味着完全静态链接。包内不包含 SDK、真实文档/采集数据或凭据。
 
 本机打包使用标准库 Python（目标机不需要）：

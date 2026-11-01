@@ -20,6 +20,8 @@ struct ModelSpec {
 
 // Frozen deployment candidates copied from models/*/model.json. No threshold is fitted.
 const ModelSpec& SpecFor(const std::string& app_id);
+// Explicit, pinned opt-in; never falls back or changes SpecFor defaults.
+const ModelSpec& SpecForProfile(const std::string& app_id, const std::string& profile);
 
 struct Prediction {
     std::string operation_label;
@@ -31,7 +33,8 @@ class CentroidModel {
 public:
     static CentroidModel Load(const std::filesystem::path& models_root,
                               const std::string& app_id,
-                              const std::string& feature_schema);
+                              const std::string& feature_schema,
+                              const std::string& profile = "frozen");
     Prediction Predict(const std::vector<double>& vector) const;
     const ModelSpec& spec() const noexcept { return *spec_; }
 
@@ -47,6 +50,7 @@ std::vector<double> NormalizeNonzero(const std::vector<double>& vector);
 
 // Small RFC 4180-style CSV helpers used by the command-line examples.
 bool ReadCsvRow(std::istream& input, std::vector<std::string>& fields);
+bool ReadTsvRow(std::istream& input, std::vector<std::string>& fields);
 void WriteCsvField(std::ostream& output, const std::string& field);
 double ParseFiniteDouble(const std::string& text, const std::string& context);
 std::string Sha256Hex(const std::string& bytes);

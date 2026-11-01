@@ -7,6 +7,13 @@
 // -1 means no compiled platform provider; 0 success; other values failure.
 extern "C" int ReadOperationFocus(void*,hop_focus*) { return -1; }
 
+extern "C" void ConfigureOperationCallbacks(hop_callbacks* callbacks) {
+    // Normally edit only ReadOperationFocus above. Keep NULL procfs/output
+    // callbacks: the common core already implements them. If the platform
+    // requires closed accessors, assign only those overrides here.
+    callbacks->focus=ReadOperationFocus;
+}
+
 // The only host-specific wiring point. Existing Native services pass their
 // actual foreground/window/root-process adapter here. Missing/failed focus
 // produces focus_changed. publish may be NULL to use config.output_jsonl.

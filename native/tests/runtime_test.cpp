@@ -86,6 +86,10 @@ int main(int argc,char** argv) {
         const auto first=runtime.RunControlled("w1","e1");
         Require(first.app_instance_id=="wps:10:100","root identity must define application instance");
         Require(first.page_size==4096 && first.phases.size()==4 && first.phases[0].processes.size()==2,"actual page size and per-process phase timing required");
+        Require(first.feature_ns>0 && first.inference_ns>0 && runtime.Health().model_load_ns>0,"compute/load clocks required");
+        Require(first.phases[0].start_ns>=first.phases[0].processes.back().clear_end_ns,"default observation clock must stay after clearing");
+        Require(runtime.Health().last_success_timing_available && runtime.Health().last_output_ns>0 &&
+            runtime.Health().last_total_ns>=first.end_ns-first.start_ns,"post-publish clocks required in health");
         bridge.Reset();
         const auto second=runtime.RunControlled("w2","e2");
         Require(first.prediction.operation_label==second.prediction.operation_label,"repeated actions fixture changed prediction");
@@ -103,6 +107,7 @@ int main(int argc,char** argv) {
         bridge.Reset();
         Expect(RuntimeCode::FocusChanged,[&]{runtime.RunControlled("gap-window","gap-event");});
         Require(runtime.History().empty() && Successes(bridge)==0,"unknown gap must reset history");
+        Require(!runtime.Health().last_success_timing_available,"failed window cannot expose new successful timings");
         Require(bridge.published.back().find("operation_label")==std::string::npos,"failure event must not carry a predicted label");
         runtime.Stop();
         const std::vector<std::pair<FakeBridge::Fault,RuntimeCode>> faults{
@@ -154,6 +159,14 @@ int main(int argc,char** argv) {
         ServiceRuntime bad_model(bad_config,bridge);
         Expect(RuntimeCode::ModelError,[&]{bad_model.Start();});
         Require(!bad_model.Health().started,"invalid model must not start");
+        FakeBridge linux_bridge;
+        linux_bridge.baseline=bridge.baseline; linux_bridge.action=bridge.action; linux_bridge.post=bridge.post;
+        auto linux_config=config; linux_config.model_profile="linux-wps-writer-pilot-20261023-v1";
+        ServiceRuntime linux_runtime(linux_config,linux_bridge); linux_runtime.Start();
+        const auto linux_event=linux_runtime.RunControlled("linux-synthetic-window","linux-synthetic-event");
+        Require(linux_event.model_profile==linux_config.model_profile && linux_runtime.History().size()==1,"explicit Linux profile/runtime history");
+        Require(linux_event.phases[0].start_ns<=linux_event.phases[0].processes.front().clear_start_ns,"Linux clock must include clearing as in training");
+        Require(linux_runtime.Health().last_success_timing_available,"Linux post-publish timing");
         auto invalid_config=config; invalid_config.baseline_count=1;
         ServiceRuntime invalid(invalid_config,bridge);
         Expect(RuntimeCode::InvalidArgument,[&]{invalid.Start();});

@@ -33,3 +33,19 @@
 OpenHarmony opsctl：aarch64 ELF、解释器 `/lib/ld-musl-aarch64.so.1`，动态需要 `libc++_shared.so` 与 `libc.so`。Linux opsctl 为 x86_64 glibc；Mac 为 arm64 Mach-O。完整依赖写入包中 BUILD_INFO.json；包不带 SDK/系统运行库，现场核实或使用对应工具链重建。
 
 M1/M2 软件交付通过。M3 内网宿主焦点调用、权限、服务注册及设备 ABI 待验证；M4 慧京桌面三项原语待校准、其他 15 类待实现和完整 smoke；M5 真实 Markov/页映射制品、独立会话指标及预测提前量待交付。正式批采与页面 Apply 未开放。
+
+## 2026-10-28：简化宿主接入包
+
+上文为 10 月 16 日历史验收，本节记录本轮实际执行。用户只能携入代码、不能外传内网材料；新增单一宿主链接目标及三调用入口，自动离线 golden/模型校验、内部工作线程、唯一输出目录和中文本地诊断，简化说明见 [SIMPLE_DEPLOY.md](SIMPLE_DEPLOY.md)。不自动注册服务或申请权限，不声称已在设备部署。
+
+- **源码**：`9bc6d744c1522ca33b7a2d12304cbb585535e439`，打包时工作区干净。
+- **Mac**：Release 构建及全部 5 项 CTest 通过；共享宿主实际链接新的三个静态目标通过。相关 Native/profile/桌面包装器 11 项 Python 回归和原三模型 SHA 审计通过。
+- **Linux server-lbz**：仅新目录原生构建、共享宿主链接和全部 5 项 CTest 通过；新包装器测试使用合成回调，没有真实 WPS/UI 或准确率评估。未安装依赖、提权或触碰其他用户进程。
+- **故障/生命周期**：验证未知应用、无效输出路径、黄金夹具损坏、重复启动、真实焦点回调失败、阶段文件写入失败、重叠触发 busy、取消并 join、正常完整 30 秒合成窗口、输出后健康计时；失败不能形成有效预测。合成 provider 只在测试目标，生产包默认焦点未接入即失败。
+- **同包一键入口**：从包副本执行 ready.sh，Mac 原生构建、自检和三应用合成回放通过；仅修改 operator/platform_bridge.cpp 仍允许构建，核心文件改动被 SHA 门禁在构建前拒绝。
+- **同包真实宿主接线**：独立外层 CMake 工程只用 add_subdirectory(operator) 和链接 harmony_operation_host，公共 C 头三调用运行通过；自动 golden 成功，默认真实焦点未接入被明确拒绝并生成中文本地报告，退出回收 worker。未修改外层 BUILD_TESTING 设置。
+- **OpenHarmony**：现有 SDK 6.1.0.105/API 23 ARM64 交叉构建通过，包含新宿主库；包内 ready.sh 使用同包源码另建交叉目录通过，明确跳过在 Mac 执行目标二进制。实际闭源 GN 工程、宿主服务权限/注册及设备运行仍未验证。
+
+交付 ZIP：`/Users/cvue/Documents/huawei_projects/deliverables/harmony-ops-innernet-simple-20261028.zip`（973,935 字节，约 1 MB）；SHA-256 为 `fe93e3ae222b9411f57df740ed0e18c7d26eac61fa8e438de7e835863a727dec`，旁置 `.zip.sha256`。161 个静态文件逐一 SHA 核验，通过文件/路径/可执行位审计；不含 SDK、凭据、真实文档/数据、Python 环境或 Linux 候选参数。包只选三个原冻结模型，原参数没有修改。
+
+私有验证日志和 DELIVERY.json 在本机 `operation_reports/20261028-harmony-simple/`；Linux 构建日志已留本机副本。内网不需要把源码、接口材料或日志回传，现场直接看 status.txt 和 status-history.jsonl。触发被接收不等于已识别，start 离线就绪不等于真机权限通过，当前仍为受控完整窗口协议。

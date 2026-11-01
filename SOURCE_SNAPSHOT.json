@@ -1,0 +1,34 @@
+{
+  "schema": "harmony.ops.controlled-release.v1",
+  "release": "20261101-controlled-window",
+  "base_commit": "9ea43affdc27554a201b79315c9660650c7d9e09",
+  "maintenance_commit": "682ff940a53e8968abc47dd72347524b65080dc4",
+  "overlay_paths": [
+    "collector/linux/x11_control.cpp",
+    "scripts/linux_server_desktop.py",
+    "scripts/linux_server_wps_smoke.py",
+    "scripts/onsite/show_wps_result.sh",
+    "tests/test_harmony_display.py",
+    "docs/handoff/ENVIRONMENT.md",
+    "docs/handoff/MEMMGRSERVER_OPERATOR_CARD.md",
+    "docs/handoff/MEMMGRSERVER_QUICKSTART.md",
+    "docs/handoff/SIMPLE_DEPLOY.md",
+    "packaging/native/BUILD.gn.example",
+    "docs/linux/environment.md",
+    "docs/linux/server_wps_20261101.md",
+    "AGENTS.md"
+  ],
+  "publication": "public-code-and-runtime-models-authorized",
+  "policy_sha256": "109e6d52743ee6d990f8fa4577002ad130381960afe7fa1a4217729959bff5db",
+  "derived_changes": [
+    "controlled-window PID diagnostic only",
+    "diagnostic assertion in existing controlled-window test",
+    "operator source completeness and archive identity",
+    "release documentation"
+  ],
+  "capture_protocol": "2x5000ms baseline / 15000ms action / 5000ms post",
+  "short_window_included": false,
+  "git_history_included": false,
+  "raw_data_included": false,
+  "sdk_included": false
+}

@@ -30,6 +30,14 @@ const ModelSpec kWps{
      "UNDO_EDIT", "WRITE_TEXT"},
     "2ca6bcce2856798c0998c28414053d9338e28a61923c50184c3f228a7cd42c7f",
     "dbd1277f21252f2827ec965a2b195365b872b0f1eae4c7b2eb709d7aaba233ea"};
+const ModelSpec kLinuxWps{
+    "wps", "wps.vma.feature.v1",
+    {"NEW_DOCUMENT", "WRITE_TEXT", "SAVE_DOCUMENT", "CLOSE_DOCUMENT", "SELECT_ALL",
+     "COPY_SELECTION", "PASTE_SELECTION", "CUT_SELECTION", "UNDO_EDIT", "REDO_EDIT",
+     "FIND_TEXT", "REPLACE_TEXT", "INSERT_PAGE_BREAK", "INSERT_TABLE", "FORMAT_BOLD",
+     "FORMAT_ITALIC", "FORMAT_UNDERLINE", "ALIGN_CENTER"},
+    "ff240f66429e1649ee5539c0cb94c94e6595d009239166b486e0dc67935358bb",
+    "09140afe3cb107ce1c7053f2109a6d7e23d54ef0348d0af66de7245549294e04"};
 
 std::vector<std::string> CenterHeader() {
     std::vector<std::string> fields{"center_id", "operation_label"};
@@ -47,6 +55,11 @@ const ModelSpec& SpecFor(const std::string& app_id) {
     if (app_id == kBrowser.app_id) return kBrowser;
     if (app_id == kWps.app_id) return kWps;
     throw std::invalid_argument("unsupported app_id: " + app_id);
+}
+const ModelSpec& SpecForProfile(const std::string& app_id, const std::string& profile) {
+    if (profile == "frozen") return SpecFor(app_id);
+    if (profile == "linux-wps-writer-pilot-20261023-v1" && app_id == "wps") return kLinuxWps;
+    throw std::invalid_argument("unsupported app/model profile: " + app_id + "/" + profile);
 }
 
 std::vector<double> NormalizeNonzero(const std::vector<double>& vector) {
@@ -69,14 +82,17 @@ std::vector<double> NormalizeNonzero(const std::vector<double>& vector) {
 
 CentroidModel CentroidModel::Load(const std::filesystem::path& models_root,
                                   const std::string& app_id,
-                                  const std::string& feature_schema) {
-    const ModelSpec& spec = SpecFor(app_id);
+                                  const std::string& feature_schema,
+                                  const std::string& profile) {
+    const ModelSpec& spec = SpecForProfile(app_id, profile);
     if (feature_schema != spec.feature_schema) {
         throw std::invalid_argument("feature schema mismatch for " + app_id +
                                     ": expected " + spec.feature_schema);
     }
-    const auto metadata_path = models_root / app_id / "model.json";
-    const auto path = models_root / app_id / "centers.csv";
+    const auto directory = profile == "frozen" ? models_root / app_id :
+        models_root / "linux" / "wps_writer_pilot_v1";
+    const auto metadata_path = directory / "model.json";
+    const auto path = directory / "centers.csv";
     std::ifstream metadata(metadata_path, std::ios::binary);
     if (!metadata) throw std::runtime_error("cannot open model metadata: " + metadata_path.string());
     const std::string metadata_bytes((std::istreambuf_iterator<char>(metadata)),
@@ -127,7 +143,7 @@ Prediction CentroidModel::Predict(const std::vector<double>& vector) const {
     return {spec_->center_labels[best_id], best, best_id};
 }
 
-bool ReadCsvRow(std::istream& input, std::vector<std::string>& fields) {
+static bool ReadDelimitedRow(std::istream& input, std::vector<std::string>& fields, char delimiter) {
     fields.clear();
     std::string field;
     bool quoted = false;
@@ -148,7 +164,7 @@ bool ReadCsvRow(std::istream& input, std::vector<std::string>& fields) {
                 if (input.peek() == '"') { input.get(); field.push_back('"'); }
                 else { quoted = false; closed_quote = true; }
             } else field.push_back(c);
-        } else if (c == ',') {
+        } else if (c == delimiter) {
             fields.push_back(field);
             field.clear();
             closed_quote = false;
@@ -163,6 +179,24 @@ bool ReadCsvRow(std::istream& input, std::vector<std::string>& fields) {
             field.push_back(c);
         }
     }
+}
+bool ReadCsvRow(std::istream& input, std::vector<std::string>& fields) {
+    return ReadDelimitedRow(input, fields, ',');
+}
+bool ReadTsvRow(std::istream& input, std::vector<std::string>& fields) {
+    // collect.c emits literal tab-separated fields, not CSV quoting.
+    fields.clear();
+    std::string line;
+    if (!std::getline(input,line)) return false;
+    if (!line.empty() && line.back()=='\r') line.pop_back();
+    std::size_t begin=0;
+    for (;;) {
+        const auto end=line.find('\t',begin);
+        fields.push_back(line.substr(begin,end==std::string::npos?end:end-begin));
+        if (end==std::string::npos) break;
+        begin=end+1;
+    }
+    return true;
 }
 
 void WriteCsvField(std::ostream& output, const std::string& field) {

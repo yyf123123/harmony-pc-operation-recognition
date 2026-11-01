@@ -31,7 +31,7 @@ std::vector<std::string> VectorHeader() {
 int main(int argc, char** argv) {
     try {
         fs::path models, vectors, output;
-        std::string app, schema;
+        std::string app, schema, profile="frozen";
         for (int i = 1; i < argc; ++i) {
             const std::string arg = argv[i];
             if (arg == "--models") models = Value(i, argc, argv);
@@ -39,9 +39,10 @@ int main(int argc, char** argv) {
             else if (arg == "--output") output = Value(i, argc, argv);
             else if (arg == "--app") app = Value(i, argc, argv);
             else if (arg == "--schema") schema = Value(i, argc, argv);
+            else if (arg == "--model-profile") profile = Value(i, argc, argv);
             else if (arg == "--help") {
                 std::cout << "operation_predict --models DIR --app APP --schema SCHEMA "
-                             "--vectors CSV --output NEW_CSV\n";
+                             "--vectors CSV --output NEW_CSV [--model-profile PROFILE]\n";
                 return 0;
             } else throw std::invalid_argument("unknown argument: " + arg);
         }
@@ -50,7 +51,7 @@ int main(int argc, char** argv) {
         if (fs::absolute(vectors).lexically_normal() == fs::absolute(output).lexically_normal() ||
             fs::exists(output))
             throw std::invalid_argument("output must be a new file distinct from the input");
-        const auto model = harmony_ops::CentroidModel::Load(models, app, schema);
+        const auto model = harmony_ops::CentroidModel::Load(models, app, schema, profile);
         std::ifstream input(vectors, std::ios::binary);
         if (!input) throw std::runtime_error("cannot open vector CSV");
         std::vector<std::string> row;

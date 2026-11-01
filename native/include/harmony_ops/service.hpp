@@ -12,9 +12,9 @@ namespace harmony_ops {
 // boundary; STL and exceptions here belong to the host translation unit.
 class Service {
 public:
-    Service(const hop_config& config,const hop_callbacks& callbacks) {
+    Service(const hop_config& config,const hop_callbacks& callbacks,const char* model_profile="frozen") {
         hop_error error{};
-        Check(hop_create(&config,&callbacks,&handle_,&error),error);
+        Check(hop_create_profile(&config,&callbacks,model_profile,&handle_,&error),error);
     }
     ~Service() { hop_destroy(handle_); }
     Service(const Service&)=delete;

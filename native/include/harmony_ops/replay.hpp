@@ -10,6 +10,10 @@
 namespace harmony_ops {
 
 struct ReplayWindow {
+    struct Timing {
+        std::uint64_t file_read_ns=0, compact_parse_ns=0, semantic_ns=0;
+        std::uint64_t baseline_ns=0, excess_ns=0, vector_ns=0, total_ns=0;
+    } timing;
     std::vector<FeatureMap> baselines;
     FeatureMap action, post;
     std::vector<double> vector;
@@ -29,5 +33,10 @@ struct ReplayWindow {
 // for the same pinned model validation as the controlled runtime.
 ReplayWindow LoadRawReplay(const std::filesystem::path& manifest,
                            const std::string& app_id);
+// WPS collect.c compact TSV replay, no procfs or live identity access. Manifest:
+// phase,index,pid,page_size,compact_vma. Each TSV must cover exactly its row PID;
+// split multi-process TSVs per PID before creating the manifest.
+ReplayWindow LoadCompactReplay(const std::filesystem::path& manifest,
+                               const std::string& app_id);
 
 }  // namespace harmony_ops

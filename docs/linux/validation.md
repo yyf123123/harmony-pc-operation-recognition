@@ -67,3 +67,11 @@ python3 -m unittest tests.test_linux_batch tests.test_linux_batch_export \
 本机 `NATIVE_BUILD_DIR=build/native .venv/bin/python -m unittest tests.test_linux_intake tests.test_linux_collection tests.test_linux_batch_export tests.test_linux_history -v`：21 项中 20 通过、1 项依赖 Linux 的测试跳过；实际 226 样本 intake 另外通过。模型数学和 C/C++ 核心没有改动。
 
 源码 `6fc0f177d18f71163ca808ebc9abf6a7871b9600` 的 [Actions run 39567354996](https://github.com/yyf123123/harmony-pc-operation-recognition/actions/runs/39567354996) 已核验四组成功：Linux Python 3.10/3.12、macOS/Windows。真实包没有上传 CI；本轮没有在服务器或内网设备上新增测试。
+
+## 2026-10-23：Linux WPS 候选训练与保存
+
+按用户明确授权，用已核验的 Linux 小试独立训练分组拟合并保存 `models/linux/wps_writer_pilot_v1/`，详见[模型记录](model_20261023.md)。只用 doc1–3 的 54 个正式独立窗口；doc4/5 各 13/18、连续 66/100，独立复现交付基线，未调参或全量重拟合。参数 18×2048，保存重载 190 标签相同，最大分数差 `5.551115123125783e-16`；已有 Python CLI 显式加载发布目录后，190 个标签/分数与本轮结果一致。预检未计分。
+
+本机 `NATIVE_BUILD_DIR=build/native .venv/bin/python -m unittest discover -s tests -v`：79 项中 70 通过、9 项 Linux 依赖跳过；新增五项测试包括不参与训练的数据改变不能影响参数、家族/会话跨组拒绝、异常样本/断裂流程拒绝和参数 SHA 篡改拒绝。`scripts.linux_train verify` 验证候选文件；`scripts.audit_models` 确认原三应用模型 SHA 未变。没有上传原始数据、连接设备或宣称 Native 服务已加载新模型。
+
+本轮未推送或运行远端 CI：GitHub API 核验当前仓库已为 public，按项目私有存放约定将新增参数/代码仅保存在本地。原有 CI 与服务器证据保留作历史，不代替本次验证。

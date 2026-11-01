@@ -57,6 +57,10 @@ typedef struct hop_callbacks {
 void hop_default_config(hop_config *out);
 void hop_default_callbacks(hop_callbacks *out);
 hop_status hop_create(const hop_config*, const hop_callbacks*, hop_handle **out, hop_error*);
+/* Explicit pinned model profile; does not change v1 struct layouts/defaults.
+ * "frozen" is identical to create. Linux candidate requires its exact profile. */
+hop_status hop_create_profile(const hop_config*, const hop_callbacks*, const char *model_profile,
+                              hop_handle **out, hop_error*);
 hop_status hop_start(hop_handle*, hop_error*);
 /* Blocking controlled trigger; no operation name/ground truth is accepted.
  * Run on the host worker. Stop from another thread cancels and joins its work. */

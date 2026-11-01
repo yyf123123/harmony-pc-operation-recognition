@@ -6,6 +6,10 @@
 
 [统一启动器与桌面 smoke](desktop_smoke.md) 自动构建、自检和生成新目录/报告。[批采与入库](batch_runner.md) 提供外部 18 类自动化的编排、门禁、恢复和质量报告。已收到慧京五文档 190 样本＋36 预检的小试，并通过[离线接收核验](intake_20261021.md)；现有冻结模型在 Linux 小试不可直接用，完整 1500 按包内说明保持暂停。内置 UI 原语仍只有三项，外部自动化与语义实现尚待独立复现。[Markov、历史与页面候选](followup_runtime.md) 无真实制品时保持 not_ready/unknown；在线、鸿蒙服务或页级收益未验收。
 
+2026-10-23 已按用户授权[训练并保存 Linux WPS 首版参数](model_20261023.md)：`models/linux/wps_writer_pilot_v1/`，54 独立样本训练，留出两文档各 72.22%、连续 66%。2026-10-28 已完成 [Native 显式接入](native_linux_profile.md)及 Linux 190 样本回放，默认模型不变；[进展与耗时报告](progress_20261028.md)给出准确率、采集与 Native 各阶段 P50/P95。[慧京桌面验证包](desktop_native_check.md)复用她已有自动化，不需要远程登录；首次实测见下面的回传分析。
+
+2026-10-29 已收到[首次 Native 桌面反馈](feedback_20261029.md)：输入、保存两条完整窗口，1 对 1 错；加粗因进程覆盖变化失效，quick 未通过，18 类未执行。触发至历史更新平均 31.27 秒、含前置至收到结果约 35.50 秒。已核对回传二进制与交付一致、真值/事件/health/时序一致；后续优先补进程与输入诊断，不恢复批采或重训。
+
 ## 构建和预检
 
 Linux 需要 Python 3.10+、CMake 3.16+、C11/C++17 编译器；真实桌面焦点适配还需 X11/Xwayland 与 `xdotool`。采集和回放本身只用 Python 标准库，NumPy 用于已有离线评估。
@@ -97,6 +101,6 @@ Linux 上额外生成 `build/linux/collector/linux/linux_vma_collect`。macOS �
 | 欣彤 | [其他反推方法与横向评估](tasks/xintong.md) |
 | 慧京 | [数据集 smoke、正式采集与交付](tasks/huijing.md) |
 
-[接口约定](integration_contract.md)、[数据集要求](dataset_requirements.md)、[环境约束](environment.md)、[验证记录](validation.md)。用户已将数据集要求转交慧京；尚未收到执行反馈或数据，Codex 未发送额外人员通知。
+[接口约定](integration_contract.md)、[数据集要求](dataset_requirements.md)、[环境约束](environment.md)、[验证记录](validation.md)。用户已转交采集要求并交回 190＋36 小试；新 Native 桌面验证包尚待用户转交，Codex 未发送额外人员通知。
 
 Linux 与鸿蒙的文件路径、应用实现、页大小和窗口条件可能不同；已有模型在 Linux 上的有效性需要独立验证。此次复用算法和模型仅证明计算与接口可接续，不证明 Linux/WPS 实时准确率或内存管理收益。

@@ -1,5 +1,8 @@
 # Add these sources to the existing Native user-space service's GN build.
 # Use that service's actual OHOS dependencies and C++ runtime configuration.
+config("ops_headers") {
+  include_dirs = [ "../source/native/include", "../source/collector/include" ]
+}
 static_library("harmony_vma_collector") {
   sources = [ "../source/collector/device/collector.c" ]
   include_dirs = [ "../source/collector/include" ]
@@ -11,6 +14,7 @@ static_library("harmony_operation_recognition") {
     "../source/native/src/feature.cpp",
     "../source/native/src/pipeline.cpp",
     "../source/native/src/runtime.cpp",
+    "../source/native/src/stream.cpp",
     "../source/native/src/replay.cpp",
     "../source/native/src/service_c.cpp",
   ]
@@ -18,5 +22,11 @@ static_library("harmony_operation_recognition") {
   cflags_cc = [ "-std=c++17", "-fexceptions", "-fPIC" ]
   deps = [ ":harmony_vma_collector" ]
 }
-# Add platform_bridge.cpp and :harmony_operation_recognition to the host target.
+static_library("harmony_operation_host") {
+  sources = [ "../source/native/src/embedded.cpp", "platform_bridge.cpp" ]
+  public_configs = [ ":ops_headers" ]
+  cflags_cc = [ "-std=c++17", "-fexceptions", "-fPIC" ]
+  public_deps = [ ":harmony_operation_recognition" ]
+}
+# The existing service adds one dependency: :harmony_operation_host.
 # Match the existing service's exceptions, libc++, visibility and architecture.

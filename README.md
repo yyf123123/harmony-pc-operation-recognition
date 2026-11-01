@@ -1,6 +1,10 @@
+公开共享入口：[版本范围与验证结果](PUBLIC_RELEASE.md)。
+
+本目录为2026-11-01完整受控窗口公开整理版。**先读[运行说明](RUN_STABLE.md)**；来源见[SOURCE_SNAPSHOT.json](SOURCE_SNAPSHOT.json)，状态见[PROJECT_STATUS.md](PROJECT_STATUS.md)。
+
 # Harmony PC operation recognition
 
-私有代码仓库：鸿蒙 PC 的设备采集、VMA 特征构造和已知应用内的操作识别。数据、SDK、日志、截图和构建产物均不随仓库分发。原项目和原始数据保持在原位置。
+项目代码仓库：鸿蒙 PC 的设备采集、VMA 特征构造和已知应用内的操作识别。项目经用户授权公开，用于同事共享经过验证的代码和必要模型；发布范围和同步状态见 [PROJECT_STATUS.md](PROJECT_STATUS.md)。数据、SDK、日志、截图和构建产物均不随仓库分发。原项目和原始数据保持在原位置。
 
 Linux 分支提供共用 Native 运行核心、严格原始采集/特征链、C ABI、持续历史与 `opsctl` 双入口；先带 [内网操作卡](docs/handoff/OPERATOR_CARD.md) 和离线包进入现有 Native 用户态服务。无需设备 Python。运行方法及团队分工见 [Linux 版本](docs/linux/README.md)，实际验收状态见 [PROJECT_STATUS.md](PROJECT_STATUS.md)。真实 WPS 18 类和鸿蒙服务仍需目标环境验收。
 

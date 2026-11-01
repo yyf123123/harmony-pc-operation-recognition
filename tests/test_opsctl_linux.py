@@ -177,6 +177,14 @@ else:
         child = read_line_until(self.target.stdout, time.monotonic() + 3)
         self.assertTrue(child.startswith("CHILD "))
         self.assert_failed_without_recognition(output, "process_changed")
+        errors = [json.loads(line) for line in output.read_text().splitlines()]
+        error = next(item for item in errors if item.get("code") == "process_changed")
+        metadata = json.loads(error["message"].split("; added_stat=", 1)[1])
+        info = next(item for item in metadata if item["pid"] == int(child.split()[1]))
+        self.assertEqual(info["metadata_status"], "observed")
+        self.assertEqual(info["ppid"], self.target.pid)
+        self.assertGreater(info["start_ticks"], 0)
+        self.assertNotIn("cmdline", info)
 
     def test_missing_selected_process_fails_before_clear_or_action(self):
         output = self.start(extra_pid=2147483647)

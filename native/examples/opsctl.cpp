@@ -78,9 +78,10 @@ std::string VectorCsv(const std::vector<double>& vector) {
     return out.str() + '\n';
 }
 using Replay = ReplayWindow;
-std::string PredictionJson(const std::string& app, const Prediction& prediction) {
+std::string PredictionJson(const std::string& app, const Prediction& prediction, const std::string& profile="frozen") {
     std::ostringstream out;
     out << std::setprecision(17) << "{\"schema\":\"harmony.ops.replay.v1\",\"status\":\"ok\",\"source\":\"offline_replay\",\"app_id\":" << Json(app)
+        << ",\"model_profile\":" << Json(profile)
         << ",\"feature_schema\":" << Json(SpecFor(app).feature_schema) << ",\"operation_label\":" << Json(prediction.operation_label)
         << ",\"cosine_similarity\":" << prediction.cosine_similarity << ",\"center_id\":" << prediction.center_id
         << ",\"accuracy_evaluated\":false}\n";
@@ -115,9 +116,9 @@ void Selftest(const fs::path& models, const fs::path& fixtures) {
 int main(int argc, char** argv) {
     try {
         if (argc < 2 || std::string(argv[1]) == "--help") {
-            std::cout << "opsctl doctor --models DIR [--app APP] [--pid PID ...]\n"
+            std::cout << "opsctl doctor --models DIR [--app APP] [--pid PID ...] [--model-profile PROFILE]\n"
                          "opsctl selftest --models DIR --fixtures DIR\n"
-                         "opsctl replay --models DIR --app APP --manifest CSV --output NEW_JSON [--vector-output NEW_CSV] [--stages NEW_DIR]\n"
+                         "opsctl replay --models DIR --app APP --manifest CSV --output NEW_JSON [--vector-output NEW_CSV] [--stages NEW_DIR] [--model-profile PROFILE] [--format smaps|compact-vma]\n"
                          "opsctl run --config FILE --window-id ID --event-id ID [--output NEW_JSONL]\n";
             std::cout << "opsctl serve --config FILE [--output NEW_JSONL]  # stdin: window_id<TAB>event_id; STOP or EOF ends\n";
             return argc < 2 ? 2 : 0;
@@ -126,8 +127,8 @@ int main(int argc, char** argv) {
         std::map<std::string, std::string> options;
         std::vector<std::int32_t> pids;
         const std::map<std::string, std::set<std::string>> allowed{
-            {"doctor",{"--models","--app","--pid"}}, {"selftest",{"--models","--fixtures"}},
-            {"replay",{"--models","--app","--manifest","--output","--vector-output","--stages"}},
+            {"doctor",{"--models","--app","--pid","--model-profile"}}, {"selftest",{"--models","--fixtures"}},
+            {"replay",{"--models","--app","--manifest","--output","--vector-output","--stages","--model-profile","--format"}},
             {"run",{"--config","--window-id","--event-id","--output"}},
             {"serve",{"--config","--output"}}};
         if (!allowed.count(command)) throw std::invalid_argument("unknown command");
@@ -145,10 +146,12 @@ int main(int argc, char** argv) {
             if (it == options.end() || it->second.empty()) throw std::invalid_argument("required: " + key);
             return it->second;
         };
+        const auto profile=options.count("--model-profile")?required("--model-profile"):std::string("frozen");
         if (command == "doctor") {
             const fs::path models = required("--models");
-            const auto apps = options.count("--app") ? std::vector<std::string>{options.at("--app")} : std::vector<std::string>{"wps","bilibili","huawei_browser"};
-            for (const auto& app : apps) (void)CentroidModel::Load(models, app, SpecFor(app).feature_schema);
+            const auto apps = options.count("--app") ? std::vector<std::string>{options.at("--app")} :
+                profile!="frozen"?std::vector<std::string>{"wps"}:std::vector<std::string>{"wps","bilibili","huawei_browser"};
+            for (const auto& app : apps) (void)CentroidModel::Load(models, app, SpecFor(app).feature_schema,profile);
             for (const auto pid : pids) {
                 hc_process_identity identity{}; hc_error error{};
                 auto status = hc_read_identity(pid, &identity, &error);
@@ -164,14 +167,16 @@ int main(int argc, char** argv) {
         else if (command == "replay") {
             const fs::path destination = required("--output");
             const auto app = required("--app");
-            const auto replay = LoadRawReplay(required("--manifest"), app);
-            const auto prediction = CentroidModel::Load(required("--models"), app, SpecFor(app).feature_schema).Predict(replay.vector);
+            const auto format=options.count("--format")?required("--format"):std::string("smaps");
+            if (format!="smaps" && format!="compact-vma") throw std::invalid_argument("unsupported replay format");
+            const auto replay = format=="smaps"?LoadRawReplay(required("--manifest"), app):LoadCompactReplay(required("--manifest"),app);
+            const auto prediction = CentroidModel::Load(required("--models"), app, SpecFor(app).feature_schema,profile).Predict(replay.vector);
             // Validate all output destinations before writing any successful result.
             for (const auto key : {"--output", "--vector-output", "--stages"}) if (options.count(key) && fs::exists(options.at(key))) throw std::runtime_error(std::string("output exists: ") + key);
             if (options.count("--stages")) Stages(options.at("--stages"), replay);
             if (options.count("--vector-output")) NewFile(options.at("--vector-output"), VectorCsv(replay.vector));
-            NewFile(destination, PredictionJson(app, prediction));
-            std::cout << PredictionJson(app, prediction);
+            NewFile(destination, PredictionJson(app, prediction,profile));
+            std::cout << PredictionJson(app, prediction,profile);
         } else return RunPlatformControlled(required("--config"), command == "run" ? required("--window-id") : "", command == "run" ? required("--event-id") : "", options.count("--output") ? fs::path(options.at("--output")) : fs::path{}, command == "serve");
         std::cout.flush();
         if (!std::cout) throw std::runtime_error("diagnostic output failed");

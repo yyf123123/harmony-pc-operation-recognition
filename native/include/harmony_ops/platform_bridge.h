@@ -23,6 +23,13 @@ extern "C" {
  */
 int ReadOperationFocus(void *host_context, hop_focus *out);
 
+/* Simplified embedded host entry uses this callback setup from the SAME
+ * editable platform_bridge.cpp. Defaults select ReadOperationFocus and local
+ * JSONL output. Optional closed procfs/publish/stage overrides stay here too.
+ * Preserve default ABI fields; do not perform collection during setup.
+ */
+void ConfigureOperationCallbacks(hop_callbacks *callbacks);
+
 /* Create and start a runtime using the supplied host callbacks. A NULL
  * read_foreground selects ReadOperationFocus from the same bridge source.
  * NULL publish_result uses config.output_jsonl; NULL notify_stage is allowed.
