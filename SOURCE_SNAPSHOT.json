@@ -19,7 +19,7 @@
     "AGENTS.md"
   ],
   "publication": "public-code-and-runtime-models-authorized",
-  "policy_sha256": "3619ffed45b37f166b88c718eeada97399a766bf41ed0bcea0c8e7d5c773ef57",
+  "policy_sha256": "1409a9e0a45fbf08ad794583b93c7212f6c166dd2917dd65af899ba094a4e100",
   "derived_changes": [
     "controlled-window PID diagnostic only",
     "diagnostic assertion in existing controlled-window test",
@@ -29,7 +29,8 @@
     "private same-snapshot raw diagnostic and strict replay audit",
     "separate pinned server candidate v2 with held-out restart evaluation",
     "explicit root feature contributors retain full process validation",
-    "bounded persistent runtime check; no autonomous short-window code"
+    "bounded persistent runtime check; no autonomous short-window code",
+    "prompted manual complete-window entry; post-capture self-report and allowlisted feedback; no shortened protocol"
   ],
   "capture_protocol": "2x5000ms baseline / 15000ms action / 5000ms post",
   "short_window_included": false,
