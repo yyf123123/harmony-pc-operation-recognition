@@ -121,6 +121,11 @@ int main(int argc,char **argv) {
     CHECK(json && hop_health_json(handle,json,required,&required,&error)==HOP_OK);
     CHECK(strstr(json,"last_success_timing_ns") && !strstr(json,"\"last_success_timing_ns\":null")); free(json);
     hop_destroy(handle);
+    handle=NULL;
+    CHECK(hop_create_profile(&config,&callbacks,"linux-wps-writer-server-20261101-v2",&handle,&error)==HOP_OK && handle);
+    CHECK(hop_start(handle,&error)==HOP_OK);
+    CHECK(hop_run(handle,"server-window","server-event",&error)==HOP_OK);
+    hop_destroy(handle);
     CHECK(hop_health_json(NULL,NULL,0,&required,&error)==HOP_INVALID_ARGUMENT);
     printf("C ABI tests passed: pure C host, callbacks, ownership, failures, cancellation\n");
     return 0;

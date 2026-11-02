@@ -11,6 +11,12 @@
 namespace harmony_ops {
 namespace {
 bool IsWps(const std::string& schema) { return schema == SpecFor("wps").feature_schema; }
+bool BeforeClearClock(const std::string& profile) {
+    return profile=="linux-wps-writer-pilot-20261023-v1" || profile=="linux-wps-writer-server-20261101-v2";
+}
+bool RootFeatures(const RuntimeConfig& config) {
+    return config.root_features_only || config.model_profile=="linux-wps-writer-server-20261101-v2";
+}
 void CheckSchema(const std::string& schema) {
     if (!IsWps(schema) && schema != SpecFor("bilibili").feature_schema &&
         schema != SpecFor("huawei_browser").feature_schema)
@@ -189,11 +195,13 @@ std::string EventJson(const RecognizedEvent& event) {
         first=false;
         out << "{\"pid\":" << process.pid << ",\"start_ticks\":" << process.start_ticks << '}';
     }
+    out << "],\"feature_pids\":[";
+    for (std::size_t i=0;i<event.feature_pids.size();++i) { if(i)out<<',';out<<event.feature_pids[i]; }
     out << "],\"page_size\":" << event.page_size
         << ",\"capture_profile\":{\"schema\":\"harmony.ops.controlled-window.v1\",\"baseline_ms\":" << event.baseline_ms
         << ",\"baseline_count\":" << event.baseline_count << ",\"action_ms\":" << event.action_ms
         << ",\"post_ms\":" << event.post_ms << ",\"focus_poll_ms\":" << event.focus_poll_ms
-        << ",\"window_clock\":" << JsonString(event.model_profile=="linux-wps-writer-pilot-20261023-v1"?"before_clear_refs":"after_clear_refs")
+        << ",\"window_clock\":" << JsonString(BeforeClearClock(event.model_profile)?"before_clear_refs":"after_clear_refs")
         << ",\"focus_validation\":\"polled\",\"autonomous_segmentation\":false},\"phases\":[";
     first=true;
     for (const auto& phase:event.phases) {
@@ -258,6 +266,8 @@ void ServiceRuntime::Start() {
         config_.baseline_count<2 || config_.baseline_count>1024 || !config_.history_limit ||
         config_.dedup_limit<config_.history_limit || !config_.max_sample_ms || !config_.focus_poll_ms || config_.focus_poll_ms>1000)
         throw RuntimeError(RuntimeCode::InvalidArgument,"invalid runtime configuration");
+    if (config_.root_features_only && !BeforeClearClock(config_.model_profile))
+        throw RuntimeError(RuntimeCode::InvalidArgument,"root-only features require an explicitly supported Linux profile");
     const auto load_start=MonotonicNowNs();
     try { model_=std::make_unique<CentroidModel>(CentroidModel::Load(config_.models_root,config_.app_id,SpecFor(config_.app_id).feature_schema,config_.model_profile)); }
     catch (const std::exception& error) {
@@ -331,6 +341,7 @@ RecognizedEvent ServiceRuntime::RunControlled(const std::string& window,const st
             const auto identity=bridge_.Identity(pid);
             if (identity.pid!=pid || !identity.start_ticks) throw RuntimeError(RuntimeCode::ProcessChanged,"invalid process start identity");
             event.processes.push_back(identity);
+            if (!RootFeatures(config_) || pid==initial.root_pid) event.feature_pids.push_back(pid);
             if (pid==initial.root_pid) root=identity;
             coverage_material+=std::to_string(pid)+":"+std::to_string(identity.start_ticks)+";";
         }
@@ -366,7 +377,7 @@ RecognizedEvent ServiceRuntime::RunControlled(const std::string& window,const st
             // The received Linux training protocol starts its deadline before
             // clear_refs (collector/linux/session.py). Keep the old default
             // clock intact, and align only the explicit Linux candidate.
-            const auto start=config_.model_profile=="linux-wps-writer-pilot-20261023-v1"?clear_start:clear_end;
+            const auto start=BeforeClearClock(config_.model_profile)?clear_start:clear_end;
             const auto deadline=start+std::uint64_t(duration_ms)*1000000;
             timing.start_ns=start; timing.target_end_ns=deadline;
             bridge_.Stage(phase,index,start);
@@ -392,7 +403,8 @@ RecognizedEvent ServiceRuntime::RunControlled(const std::string& window,const st
                 event.page_size=page_size;
                 if (map.empty()) throw RuntimeError(RuntimeCode::CollectionFailed,"empty process feature snapshot");
                 ValidateFeatureMap(map);
-                for (const auto& [key,value]:map) combined[key]+=value;
+                if (!RootFeatures(config_) || process.pid==initial.root_pid)
+                    for (const auto& [key,value]:map) combined[key]+=value;
             }
             validate();
             if (MonotonicNowNs()>deadline+std::uint64_t(config_.max_sample_ms)*1000000)

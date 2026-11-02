@@ -1,6 +1,7 @@
 // Minimal real X11/XTest adapter for an isolated, authenticated test desktop.
 // Build: c++ -std=c++17 x11_control.cpp -lX11 -ldl -o xdotool
-// No window titles, clipboard, credentials or document content are emitted.
+// No window titles or credentials are emitted. The opt-in test clipboard
+// reader emits controlled selection text only on an isolated test display.
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 #include <X11/keysym.h>
@@ -36,6 +37,37 @@ unsigned long property(Window window, const char* name, Atom type) {
     return value;
 }
 Window active() { return property(DefaultRootWindow(display), "_NET_ACTIVE_WINDOW", XA_WINDOW); }
+void test_clipboard(const std::string& command,unsigned long pid) {
+    const char* isolated=std::getenv("HARMONY_OPS_ISOLATED_TEST");
+    if (!isolated || std::string(isolated)!="1" || property(active(),"_NET_WM_PID",XA_CARDINAL)!=pid)
+        throw std::runtime_error("clipboard access requires the authorized isolated test window");
+    const Atom selection=XInternAtom(display,"CLIPBOARD",False);
+    if (command=="clear-clipboard") {
+        XSetSelectionOwner(display,selection,None,CurrentTime); XSync(display,False); return;
+    }
+    Window receiver=XCreateSimpleWindow(display,DefaultRootWindow(display),0,0,1,1,0,0,0);
+    const Atom target=XInternAtom(display,"UTF8_STRING",False), prop=XInternAtom(display,"HOP_TEST_CLIPBOARD",False);
+    XConvertSelection(display,selection,target,prop,receiver,CurrentTime); XFlush(display);
+    const auto until=std::chrono::steady_clock::now()+std::chrono::seconds(3);
+    while (std::chrono::steady_clock::now()<until) {
+        if (XPending(display)) {
+            XEvent event; XNextEvent(display,&event);
+            if (event.type==SelectionNotify && event.xselection.requestor==receiver) {
+                Atom type; int format; unsigned long size,rest; unsigned char* bytes=nullptr;
+                if (event.xselection.property==None) break;
+                XGetWindowProperty(display,receiver,prop,0,16384,True,AnyPropertyType,&type,&format,&size,&rest,&bytes);
+                bool valid=bytes && type==target && format==8 && rest==0 && size<=65536;
+                if (valid) std::cout.write(reinterpret_cast<char*>(bytes),size);
+                if (bytes) XFree(bytes);
+                XDestroyWindow(display,receiver);
+                if (!valid) throw std::runtime_error("controlled clipboard text unavailable");
+                return;
+            }
+        } else std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+    XDestroyWindow(display,receiver);
+    throw std::runtime_error("controlled clipboard did not respond");
+}
 void close_system_check(unsigned long pid) {
     // A known non-consent diagnostic blocks document focus on fresh launches.
     // Close only this exact WPS-owned window; never accept dialogs or change
@@ -117,7 +149,9 @@ int main(int argc, char** argv) {
         display = XOpenDisplay(nullptr);
         if (!display) throw std::runtime_error("authenticated X11 display unavailable");
         std::string command = argv[1];
-        if (command == "close-system-check" && argc == 3) {
+        if ((command=="getclipboard" || command=="clear-clipboard") && argc==3) {
+            test_clipboard(command,number(argv[2]));
+        } else if (command == "close-system-check" && argc == 3) {
             close_system_check(number(argv[2]));
         } else if (command == "getactivewindow") {
             auto window = active();
@@ -195,8 +229,9 @@ int main(int argc, char** argv) {
                 if (payload.size() > 512) throw std::runtime_error("text too long");
                 // Validate the whole payload before sending any key.
                 for (unsigned char ch : payload)
-                    if (ch < 32 || ch > 126) throw std::runtime_error("ASCII test text required");
+                    if ((ch < 32 && ch!='\n') || ch > 126) throw std::runtime_error("ASCII test text required");
                 for (unsigned char ch : payload) {
+                    if (ch=='\n') { chord("Return"); std::this_thread::sleep_for(std::chrono::milliseconds(delay)); continue; }
                     KeySym symbol = ch;
                     auto code = XKeysymToKeycode(display, symbol);
                     if (!code) throw std::runtime_error("unmapped test character");

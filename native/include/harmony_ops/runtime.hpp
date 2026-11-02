@@ -55,6 +55,9 @@ struct RuntimeConfig {
     std::uint32_t baseline_ms=5000, action_ms=15000, post_ms=5000;
     std::size_t baseline_count=2, history_limit=64, dedup_limit=1024;
     std::uint32_t max_sample_ms=1000, focus_poll_ms=100;
+    // Explicit Linux training-scope alignment only. All covered processes are
+    // still collected/validated; this selects which maps enter the feature.
+    bool root_features_only=false;
 };
 struct RecognizedEvent {
     std::string event_id, window_id, session_id, app_id, app_instance_id;
@@ -64,6 +67,7 @@ struct RecognizedEvent {
     std::uint64_t initial_evidence_ns=0, feature_ns=0, inference_ns=0, final_validation_ns=0;
     Prediction prediction;
     std::vector<hc_process_identity> processes;
+    std::vector<std::int32_t> feature_pids;
     std::uint64_t page_size=0;
     std::uint32_t baseline_ms=0, action_ms=0, post_ms=0, focus_poll_ms=0;
     std::size_t baseline_count=0;

@@ -66,6 +66,7 @@ def verify_saved(path, expected_text, *, must_bold=False, previous_sha=None):
 
 
 def run(args):
+    model_profile=getattr(args,"model_profile",PROFILE)
     document = args.document.resolve(strict=True)
     if args.document.is_symlink() or not args.test_copy or document.suffix.lower() != ".docx":
         raise ValueError("explicit regular DOCX test copy required")
@@ -81,7 +82,7 @@ def run(args):
     report = {"schema": "linux.wps.server-smoke.v1", "status": "running",
               "source": "server-lbz-authenticated-xvfb-real-wps", "app_version": args.app_version,
               "synthetic_document": True, "is_mock": False, "formal_collection_enabled": False,
-              "dataset_release_eligible": False, "model_profile": PROFILE,
+              "dataset_release_eligible": False, "model_profile": model_profile,
               "native_sha256": hashlib.sha256(args.native.read_bytes()).hexdigest(),
               "root_pid": args.root_pid, "processes": [vars(v) for v in identities.values()],
               "scope": "three calibrated actions in one application instance; not independent accuracy evaluation",
@@ -120,10 +121,14 @@ def run(args):
                      "status": "running", "semantic_passed": False, "valid_native_window": False}
             report["trials"].append(trial); save()
             config = trial_dir / "device.conf"
-            config.write_text(f"app_id=wps\nmodels_root={args.models.resolve()}\nmodel_profile={PROFILE}\n"
+            config.write_text(f"app_id=wps\nmodels_root={args.models.resolve()}\nmodel_profile={model_profile}\n"
                               f"session_id={event_id}\nroot_pid={args.root_pid}\ncovered_pids={','.join(map(str,pids))}\n"
                               f"output_jsonl={trial_dir/'native.jsonl'}\nbaseline_count=2\nbaseline_ms=5000\n"
                               "action_ms=15000\npost_ms=5000\nmax_sample_ms=1000\nfocus_poll_ms=100\n")
+            if os.environ.get("HARMONY_OPS_FEATURE_SCOPE") == "root_only":
+                with config.open("a") as handle: handle.write("feature_scope=root_only\n")
+            if os.environ.get("HARMONY_OPS_RAW_SIDECAR") == "1":
+                with config.open("a") as handle: handle.write(f"raw_output_jsonl={trial_dir/'raw.jsonl'}\n")
             stream = NativeStream([args.native.resolve(), "serve", "--config", config])
             started = time.monotonic_ns(); acted = False; event = health = None
             try:

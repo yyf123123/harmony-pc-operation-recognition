@@ -33,6 +33,9 @@ def blank_document(path):
 
 
 def session(args, root):
+    if args.acceptance:
+        from scripts.linux_wps_acceptance import run_session
+        return run_session(args, root)
     children = []
     try:
         document = root / (uuid.uuid4().hex + ".docx"); blank_document(document)
@@ -69,7 +72,11 @@ def session(args, root):
         try:
             ui("type", "--", "Calibration text"); ui("key", "ctrl+s")
             verify_saved(document, "Calibration text")
-            ui("key", "ctrl+z"); ui("key", "ctrl+s"); verify_saved(document, "")
+            # WPS can split typed text into multiple undo groups. Explicitly
+            # clear this disposable document instead of assuming one undo
+            # removes the entire calibration payload.
+            ui("key", "ctrl+a"); ui("key", "BackSpace")
+            ui("key", "ctrl+s"); verify_saved(document, "")
         except Exception:
             if shutil.which("import"):
                 subprocess.run(["import", "-window", "root", str(root/"precondition-failure.png")], timeout=5, check=False)
@@ -86,7 +93,7 @@ def session(args, root):
             raise RuntimeError("prepared document did not retain actual WPS focus")
         result = smoke(SimpleNamespace(document=document, test_copy=True, root_pid=target.pid,
             covered_pids=list(pids), window_id=window, native=args.native, models=args.models,
-            output=root/"smoke", app_version=args.app_version))
+            output=root/"smoke", app_version=args.app_version, model_profile=args.model_profile))
         if result["status"] != "smoke_complete" and shutil.which("import"):
             subprocess.run(["import", "-window", "root", str(root/"failure.png")], timeout=5, check=False)
         return 0 if result["status"] == "smoke_complete" and result["valid_native_windows"] == 3 else 2
@@ -113,9 +120,19 @@ def main():
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--native", type=Path, required=True); parser.add_argument("--models", type=Path, required=True)
     parser.add_argument("--app-version", required=True)
+    parser.add_argument("--model-profile", default="linux-wps-writer-pilot-20261023-v1",
+        choices=("linux-wps-writer-pilot-20261023-v1","linux-wps-writer-server-20261101-v2"))
+    parser.add_argument("--acceptance", choices=("semantic", "full", "input", "soak"))
+    parser.add_argument("--automation-runtime", type=Path, help="existing task-local RPC package directory; never installs globally")
+    parser.add_argument("--operations", default="all", help="all or comma-separated frozen labels")
+    parser.add_argument("--rounds", type=int, default=1)
+    parser.add_argument("--duration-minutes", type=int, default=20)
+    parser.add_argument("--order-seed", type=int, help="explicit reproducible shuffle, external truth only")
     parser.add_argument("--wps", type=Path, default=Path("/opt/kingsoft/wps-office/office6/wps"))
     parser.add_argument("--_session", type=Path, help=argparse.SUPPRESS)
     args = parser.parse_args()
+    if not 1 <= args.rounds <= 3 or not 1 <= args.duration_minutes <= 120:
+        parser.error("rounds must be 1..3; duration must be 1..120 minutes")
     if sys.platform != "linux": parser.error("Linux required")
     if args._session:
         try:
@@ -148,6 +165,11 @@ def main():
             raise ValueError("private profile subdirectory required")
         env[variable] = str(directory)
     env.update(PATH=str(root/"bin")+os.pathsep+env["PATH"], QT_QPA_PLATFORM="xcb", PYTHONPATH=str(source_root))
+    if args.acceptance:
+        if args.automation_runtime is None or not args.automation_runtime.is_dir():
+            parser.error("existing task-local --automation-runtime required for acceptance checks")
+        env["PYTHONPATH"] += os.pathsep+str(args.automation_runtime.resolve())
+        env["HARMONY_OPS_ISOLATED_TEST"] = "1"
     for variable in ("DISPLAY", "WAYLAND_DISPLAY", "DBUS_SESSION_BUS_ADDRESS", "XAUTHORITY"):
         env.pop(variable, None)
     argv = ["xvfb-run", "-a", "-n", "180", "-s", "-screen 0 1280x960x24 -nolisten tcp -noreset", "dbus-run-session", "--",
@@ -155,7 +177,9 @@ def main():
     with (root/"session.log").open("x") as log:
         process = subprocess.Popen(argv, env=env, stdout=log, stderr=log, start_new_session=True)
         try:
-            code = process.wait(timeout=300)
+            budget = (args.duration_minutes*60+180 if args.acceptance=="soak" else
+                      (2100*args.rounds if args.acceptance else 300))
+            code = process.wait(timeout=budget)
         except (subprocess.TimeoutExpired, KeyboardInterrupt):
             if process.poll() is None:
                 os.killpg(process.pid, signal.SIGINT)
@@ -167,6 +191,8 @@ def main():
                "report": str(root/"smoke/report.json") if (root/"smoke/report.json").exists() else None,
                "desktop_failure": str(root/"desktop-failure.json") if (root/"desktop-failure.json").exists() else None,
                "formal_collection_enabled": False}
+    if args.acceptance:
+        receipt["report"] = str(root/"acceptance/report.json") if (root/"acceptance/report.json").exists() else None
     (root/"desktop-report.json").write_text(json.dumps(receipt, indent=2) + "\n")
     print(json.dumps(receipt))
     return code

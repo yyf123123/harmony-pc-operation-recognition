@@ -1,6 +1,7 @@
 #include "harmony_ops/runtime.hpp"
 
 #include <atomic>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -167,6 +168,32 @@ int main(int argc,char** argv) {
         Require(linux_event.model_profile==linux_config.model_profile && linux_runtime.History().size()==1,"explicit Linux profile/runtime history");
         Require(linux_event.phases[0].start_ns<=linux_event.phases[0].processes.front().clear_start_ns,"Linux clock must include clearing as in training");
         Require(linux_runtime.Health().last_success_timing_available,"Linux post-publish timing");
+        FakeBridge root_bridge;
+        root_bridge.baseline=bridge.baseline; root_bridge.action=bridge.action; root_bridge.post=bridge.post;
+        auto root_config=linux_config; root_config.root_features_only=true;
+        ServiceRuntime root_runtime(root_config,root_bridge);root_runtime.Start();
+        const auto root_event=root_runtime.RunControlled("root-synthetic-window","root-synthetic-event");
+        const auto root_expected=CentroidModel::Load(config.models_root,"wps",schema,root_config.model_profile).Predict(
+            BuildWindowVector(schema,root_bridge.baseline,root_bridge.action,root_bridge.post));
+        Require(root_event.feature_pids==std::vector<std::int32_t>{10} && root_event.processes.size()==2,
+                "root feature scope must not remove required collection coverage");
+        Require(root_event.prediction.operation_label==root_expected.operation_label &&
+            std::abs(root_event.prediction.cosine_similarity-root_expected.cosine_similarity)<1e-9,"root map must match frozen feature computation");
+        root_bridge.Reset();root_bridge.fault=FakeBridge::Partial;
+        Expect(RuntimeCode::CollectionFailed,[&]{root_runtime.RunControlled("root-child-failure","root-child-failure");});
+        Require(root_runtime.History().empty() && Successes(root_bridge)==0,"excluded child collection failure cannot be ignored");
+        auto unsupported_root=config;unsupported_root.root_features_only=true;
+        ServiceRuntime bad_scope(unsupported_root,bridge);
+        Expect(RuntimeCode::InvalidArgument,[&]{bad_scope.Start();});
+        FakeBridge server_bridge;
+        server_bridge.baseline=bridge.baseline;server_bridge.action=bridge.action;server_bridge.post=bridge.post;
+        auto server_config=config;server_config.model_profile="linux-wps-writer-server-20261101-v2";
+        ServiceRuntime server_runtime(server_config,server_bridge);server_runtime.Start();
+        const auto server_event=server_runtime.RunControlled("server-synthetic-window","server-synthetic-event");
+        Require(server_event.feature_pids==std::vector<std::int32_t>{10} && server_event.processes.size()==2,
+                "server model must bind root features while retaining complete required coverage");
+        Require(server_event.phases[0].start_ns<=server_event.phases[0].processes.front().clear_start_ns,
+                "server model must retain its calibration window clock");
         auto invalid_config=config; invalid_config.baseline_count=1;
         ServiceRuntime invalid(invalid_config,bridge);
         Expect(RuntimeCode::InvalidArgument,[&]{invalid.Start();});

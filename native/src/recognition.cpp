@@ -38,6 +38,10 @@ const ModelSpec kLinuxWps{
      "FORMAT_ITALIC", "FORMAT_UNDERLINE", "ALIGN_CENTER"},
     "ff240f66429e1649ee5539c0cb94c94e6595d009239166b486e0dc67935358bb",
     "09140afe3cb107ce1c7053f2109a6d7e23d54ef0348d0af66de7245549294e04"};
+const ModelSpec kLinuxServerWps{
+    "wps", "wps.vma.feature.v1", kLinuxWps.center_labels,
+    "1f0a5e79fecccc50bd7ba79d877af2c3840a1c8611140b8a08bf74236da5fb6f",
+    "800332b18d09a745b4a7bf9d4cd7a7f3067d658f7cb31689db929da034f25fa6"};
 
 std::vector<std::string> CenterHeader() {
     std::vector<std::string> fields{"center_id", "operation_label"};
@@ -59,6 +63,7 @@ const ModelSpec& SpecFor(const std::string& app_id) {
 const ModelSpec& SpecForProfile(const std::string& app_id, const std::string& profile) {
     if (profile == "frozen") return SpecFor(app_id);
     if (profile == "linux-wps-writer-pilot-20261023-v1" && app_id == "wps") return kLinuxWps;
+    if (profile == "linux-wps-writer-server-20261101-v2" && app_id == "wps") return kLinuxServerWps;
     throw std::invalid_argument("unsupported app/model profile: " + app_id + "/" + profile);
 }
 
@@ -90,7 +95,7 @@ CentroidModel CentroidModel::Load(const std::filesystem::path& models_root,
                                     ": expected " + spec.feature_schema);
     }
     const auto directory = profile == "frozen" ? models_root / app_id :
-        models_root / "linux" / "wps_writer_pilot_v1";
+        models_root / "linux" / (profile=="linux-wps-writer-server-20261101-v2"?"wps_writer_server_v2":"wps_writer_pilot_v1");
     const auto metadata_path = directory / "model.json";
     const auto path = directory / "centers.csv";
     std::ifstream metadata(metadata_path, std::ios::binary);

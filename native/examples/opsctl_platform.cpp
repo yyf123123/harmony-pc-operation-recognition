@@ -157,6 +157,38 @@ std::string AddedProcessMetadata(const std::vector<std::int32_t>& pids) {
 class DesktopBridge final : public PlatformBridge {
 public:
     FocusEvidence selected;
+    fs::path raw_output;
+    std::string raw_phase;
+    std::size_t raw_index=0;
+    FeatureMap Sample(const hc_process_identity& process,const std::string& schema) override {
+        if (raw_output.empty()) return PlatformBridge::Sample(process,schema);
+        hc_snapshot snapshot{}; hc_error error{};
+        const auto mode=schema==SpecFor("wps").feature_schema?HC_SEGMENT_WPS:HC_SEGMENT_CROSS_APP;
+        if (hc_collect(&process,mode,&snapshot,&error)!=HC_OK)
+            throw RuntimeError(error.code==HC_PROCESS_CHANGED?RuntimeCode::ProcessChanged:RuntimeCode::CollectionFailed,error.message);
+        try {
+            auto map=SemanticFeatures(snapshot,schema);
+            sampled_page_size_=snapshot.page_size;
+            std::ofstream out(raw_output,std::ios::binary|std::ios::app);
+            out << "{\"schema\":\"harmony.ops.raw-window.v1\",\"phase\":" << JsonString(raw_phase)
+                << ",\"index\":" << raw_index << ",\"feature_schema\":" << JsonString(schema)
+                << ",\"pid\":" << process.pid << ",\"start_ticks\":" << process.start_ticks
+                << ",\"page_size\":" << snapshot.page_size << ",\"started_ns\":" << snapshot.started_ns
+                << ",\"finished_ns\":" << snapshot.finished_ns << ",\"vmas\":[";
+            for (std::size_t i=0;i<snapshot.count;++i) {
+                const auto& v=snapshot.vmas[i]; if (i) out << ',';
+                out << "{\"start\":" << v.start << ",\"end\":" << v.end << ",\"offset\":" << v.offset
+                    << ",\"inode\":" << v.inode << ",\"device\":" << JsonString(v.device)
+                    << ",\"pathname\":" << JsonString(v.pathname) << ",\"segment\":" << JsonString(v.segment)
+                    << ",\"perms\":" << JsonString(v.permissions) << ",\"referenced_bytes\":" << v.referenced_bytes
+                    << ",\"referenced_pages\":" << v.referenced_pages << '}';
+            }
+            out << "]}\n"; out.flush();
+            if (!out) throw RuntimeError(RuntimeCode::OutputFailed,"raw snapshot output failed");
+            out.close(); if (!out) throw RuntimeError(RuntimeCode::OutputFailed,"raw snapshot close failed");
+            hc_snapshot_free(&snapshot); return map;
+        } catch (...) { hc_snapshot_free(&snapshot); throw; }
+    }
     FocusEvidence Focus() override {
         hop_focus host{};
         const int result = ReadOperationFocus(nullptr,&host);
@@ -202,6 +234,7 @@ public:
 #endif
     }
     void Stage(const std::string& phase, std::size_t index, std::uint64_t ns) override {
+        raw_phase=phase; raw_index=index;
         std::cout << "{\"schema\":\"harmony.ops.stage.v1\",\"phase\":" << JsonString(phase)
                   << ",\"index\":" << index << ",\"monotonic_ns\":" << ns << "}\n" << std::flush;
         if (!std::cout) throw RuntimeError(RuntimeCode::OutputFailed, "phase output failed");
@@ -245,7 +278,7 @@ int RunPlatformControlled(const std::filesystem::path& file, const std::string& 
     if (!input) throw std::runtime_error("cannot open device configuration");
     std::map<std::string,std::string> config;
     std::string line;
-    const std::set<std::string> allowed{"app_id","models_root","model_profile","session_id","root_pid","covered_pids","output_jsonl","baseline_ms","baseline_count","action_ms","post_ms","max_sample_ms","focus_poll_ms","history_limit","dedup_limit"};
+    const std::set<std::string> allowed{"app_id","models_root","model_profile","session_id","root_pid","covered_pids","feature_scope","output_jsonl","raw_output_jsonl","baseline_ms","baseline_count","action_ms","post_ms","max_sample_ms","focus_poll_ms","history_limit","dedup_limit"};
     while (std::getline(input,line)) {
         line = Trim(line);
         if (line.empty() || line[0] == '#') continue;
@@ -260,6 +293,11 @@ int RunPlatformControlled(const std::filesystem::path& file, const std::string& 
     runtime.app_id = required("app_id");
     runtime.models_root = file.parent_path() / required("models_root");
     if (config.count("model_profile")) runtime.model_profile=config.at("model_profile");
+    if (config.count("feature_scope")) {
+        if (config.at("feature_scope")!="root_only" && config.at("feature_scope")!="all_covered")
+            throw std::invalid_argument("feature_scope must be root_only or all_covered");
+        runtime.root_features_only=config.at("feature_scope")=="root_only";
+    }
     runtime.session_id = required("session_id");
     runtime.output_jsonl = output.empty() ? file.parent_path() / required("output_jsonl") : output;
     if (fs::exists(runtime.output_jsonl)) throw std::invalid_argument("run output must be a new JSONL file");
@@ -269,6 +307,12 @@ int RunPlatformControlled(const std::filesystem::path& file, const std::string& 
     set("max_sample_ms",runtime.max_sample_ms); set("focus_poll_ms",runtime.focus_poll_ms);
     set("history_limit",runtime.history_limit); set("dedup_limit",runtime.dedup_limit);
     DesktopBridge bridge;
+    if (config.count("raw_output_jsonl")) {
+        bridge.raw_output=file.parent_path()/config.at("raw_output_jsonl");
+        if (bridge.raw_output==runtime.output_jsonl || fs::exists(bridge.raw_output) ||
+            !fs::is_directory(bridge.raw_output.parent_path()))
+            throw std::invalid_argument("raw output requires a new distinct file in an existing private directory");
+    }
     bridge.selected.app_id = runtime.app_id;
     const auto root = Number(required("root_pid"));
     if (!root || root > 2147483647) throw std::invalid_argument("set a positive authorized root_pid");

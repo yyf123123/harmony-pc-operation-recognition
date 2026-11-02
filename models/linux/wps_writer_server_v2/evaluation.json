@@ -1,0 +1,87 @@
+{
+  "schema": "linux.wps.server-heldout-evaluation.v1",
+  "model_sha256": "1f0a5e79fecccc50bd7ba79d877af2c3840a1c8611140b8a08bf74236da5fb6f",
+  "source_analysis_sha256": [
+    "250394fe59de886a435279bb907c20306ba61c182e2e4914ad461d785f119b76"
+  ],
+  "scope": "held-out app restart; synthetic controlled documents on one server",
+  "sample_count": 37,
+  "correct": 26,
+  "accuracy": 0.7027027027027027,
+  "full_catalog_covered": true,
+  "per_label": {
+    "NEW_DOCUMENT": {
+      "support": 2,
+      "correct": 2
+    },
+    "WRITE_TEXT": {
+      "support": 2,
+      "correct": 1
+    },
+    "SAVE_DOCUMENT": {
+      "support": 2,
+      "correct": 2
+    },
+    "CLOSE_DOCUMENT": {
+      "support": 2,
+      "correct": 2
+    },
+    "SELECT_ALL": {
+      "support": 2,
+      "correct": 2
+    },
+    "COPY_SELECTION": {
+      "support": 2,
+      "correct": 2
+    },
+    "PASTE_SELECTION": {
+      "support": 2,
+      "correct": 2
+    },
+    "CUT_SELECTION": {
+      "support": 3,
+      "correct": 1
+    },
+    "UNDO_EDIT": {
+      "support": 2,
+      "correct": 2
+    },
+    "REDO_EDIT": {
+      "support": 2,
+      "correct": 0
+    },
+    "FIND_TEXT": {
+      "support": 2,
+      "correct": 2
+    },
+    "REPLACE_TEXT": {
+      "support": 2,
+      "correct": 2
+    },
+    "INSERT_PAGE_BREAK": {
+      "support": 2,
+      "correct": 2
+    },
+    "INSERT_TABLE": {
+      "support": 2,
+      "correct": 1
+    },
+    "FORMAT_BOLD": {
+      "support": 2,
+      "correct": 1
+    },
+    "FORMAT_ITALIC": {
+      "support": 2,
+      "correct": 1
+    },
+    "FORMAT_UNDERLINE": {
+      "support": 2,
+      "correct": 1
+    },
+    "ALIGN_CENTER": {
+      "support": 2,
+      "correct": 0
+    }
+  },
+  "production_ready": false
+}
